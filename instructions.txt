@@ -1,8 +1,0 @@
-docker build -t nfdi-demonstrator .
-
-docker run -it --runtime=nvidia --gpus all --memory=12g --ipc=host -p 8888:8888 -p 8000:8000
-
-docker start suspicious_benz
-docker exec -it suspicious_benz bash
-
-voila nfdi.ipynb --template=material --theme=light --port=8888 --Voila.ip=0.0.0.0

@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NFDI Material Simulation Hub</title>
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #2ecc71;
+            --tertiary-color: #e74c3c;
+            --background-color: #f5f7fa;
+            --card-color: #ffffff;
+            --text-color: #333333;
+            --border-color: #e0e0e0;
+            --shadow-color: rgba(0, 0, 0, 0.08);
+            --hover-shadow: rgba(0, 0, 0, 0.15);
+            --tw-border-opacity: 1;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* Header styles */
+        header {
+            background-color: var(--background-color);
+            padding: 40px 0;
+            /* box-shadow: 0 4px 6px var(--shadow-color); */
+            width: 100%;
+        }
+
+        header .container {
+            width: 100%;
+            max-width: 100%;
+            padding: 0;
+            display: grid;
+            grid-template-columns: 20% 60% 20%;
+        }
+
+        .header-flex {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            grid-column: 2 / 3;
+            width: 100%;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            background-color: rgb(255, 255, 255, 1);
+            overflow: hidden;
+            box-shadow: 0 4px 12px var(--shadow-color);
+            border-color: rgb(191 234 248 / var(--tw-border-opacity, 1));
+            border-width: 4px;
+        }
+
+        @media (min-width: 768px) {
+            .header-flex {
+                flex-direction: row;
+                align-items: center;
+            }
+        }
+
+        .header-image {
+            flex: 1;
+            text-align: center;
+            margin-bottom: 20px;
+            width: 100%;
+            padding: 20px;
+        }
+
+        .header-content {
+            flex: 1;
+            padding: 20px;
+            width: 100%;
+        }
+
+        @media (min-width: 768px) {
+            .header-image {
+                margin-bottom: 0;
+                width: 50%;
+            }
+            
+            .header-content {
+                width: 50%;
+            }
+        }
+
+        .header-image img {
+            max-width: 100%;
+            height: auto;
+        }
+
+        .header-title-small {
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+            line-height: 1.4;
+            color: #000000;
+        }
+
+        .header-title-large {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            color: #44afff;
+        }
+
+        .header-description {
+            font-style: italic;
+            max-width: 800px;
+            font-size: 1.1rem;
+            margin-bottom: 20px;
+            color: #000000;
+        }
+
+        /* Header buttons */
+        .header-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .header-button {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: transparent;
+            color: var(--primary-color);
+            border: 1px solid var(--primary-color);
+            border-radius: 5px;
+            text-decoration: none;
+            text-align: center;
+            font-weight: 600;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .header-button:hover {
+            background-color: rgba(68, 175, 255, 0.1);
+            color: #2980b9;
+            border-color: #2980b9;
+            transform: translateY(-2px);
+        }
+
+        @media (min-width: 768px) {
+            .header-buttons {
+                flex-direction: row;
+                flex-wrap: wrap;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header-button {
+                width: 100%;
+                padding: 8px 15px;
+                font-size: 0.9rem;
+            }
+        }
+
+        /* Reset the container style for the main content and footer sections */
+        main .container, footer .container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: block;
+        }
+
+        /* Main content area */
+        main {
+            flex-grow: 1;
+            padding: 40px 0;
+        }
+
+        .section-title {
+            text-align: center;
+            margin-bottom: 40px;
+            color: var(--primary-color);
+            font-size: 2rem;
+            position: relative;
+            padding-bottom: 15px;
+        }
+
+        .section-title::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 4px;
+            background-color: var(--primary-color);
+            border-radius: 2px;
+        }
+
+        /* Model grid */
+        .model-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .model-card {
+            background-color: var(--card-color);
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px var(--shadow-color);
+            transition: all 0.3s ease;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .model-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 24px var(--hover-shadow);
+        }
+
+        .model-image {
+            height: 160px;
+            background-color: #f0f7ff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .model-image i {
+            font-size: 4rem;
+            color: var(--primary-color);
+        }
+
+        .model-content {
+            padding: 20px;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .model-title {
+            color: var(--primary-color);
+            margin-bottom: 12px;
+            font-size: 1.4rem;
+        }
+
+        .model-description {
+            margin-bottom: 20px;
+            flex-grow: 1;
+            color: #666;
+            font-size: 0.95rem;
+        }
+
+        .model-status {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+
+        .status-active {
+            background-color: rgba(46, 204, 113, 0.15);
+            color: #27ae60;
+        }
+
+        .status-coming-soon {
+            background-color: rgba(52, 152, 219, 0.15);
+            color: #2980b9;
+        }
+
+        .status-experimental {
+            background-color: rgba(231, 76, 60, 0.15);
+            color: #c0392b;
+        }
+
+        .model-button {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: var(--primary-color);
+            color: white;
+            border-radius: 5px;
+            text-decoration: none;
+            text-align: center;
+            font-weight: 600;
+            transition: background-color 0.2s;
+            margin-top: auto;
+            border: none;
+            cursor: pointer;
+        }
+
+        .model-button:hover {
+            background-color: #2980b9;
+        }
+
+        .model-button.coming-soon {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+        }
+
+        .model-button.experimental {
+            background-color: var(--tertiary-color);
+        }
+
+        .model-button.experimental:hover {
+            background-color: #c0392b;
+        }
+
+        /* Footer */
+        footer {
+            background-color: #2c3e50;
+            color: white;
+            padding: 30px 0;
+            margin-top: auto;
+        }
+
+        .footer-content {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .footer-logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 15px;
+        }
+
+        .footer-text {
+            max-width: 500px;
+            margin-bottom: 15px;
+            opacity: 0.8;
+            font-size: 0.9rem;
+        }
+
+        .footer-links {
+            list-style: none;
+            display: flex;
+            flex-wrap: wrap;
+        }
+
+        .footer-links li {
+            margin-right: 20px;
+        }
+
+        .footer-links a {
+            color: white;
+            text-decoration: none;
+            opacity: 0.8;
+            transition: opacity 0.2s;
+        }
+
+        .footer-links a:hover {
+            opacity: 1;
+        }
+
+        .attribution {
+            font-size: 0.85rem;
+            opacity: 0.7;
+            text-align: center;
+            margin-top: 20px;
+            width: 100%;
+        }
+
+        /* Modal for coming soon messages */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 999;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+            position: relative;
+            animation: modalAppear 0.3s ease-out;
+        }
+
+        @keyframes modalAppear {
+            from { opacity: 0; transform: translateY(-50px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .modal-title {
+            color: var(--primary-color);
+            margin-bottom: 15px;
+        }
+
+        .modal-body {
+            margin-bottom: 20px;
+            color: #666;
+        }
+
+        .modal-close {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background-color 0.2s;
+        }
+
+        .modal-close:hover {
+            background-color: #2980b9;
+        }
+
+        /* Mobile responsiveness */
+        @media (max-width: 768px) {
+            header {
+                padding: 30px 0;
+            }
+
+            .header-title-large {
+                font-size: 2rem;
+            }
+
+            .header-title-small {
+                font-size: 0.8rem;
+            }
+
+            .header-description {
+                font-size: 1rem;
+            }
+
+            .section-title {
+                font-size: 1.6rem;
+            }
+
+            .footer-content {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .footer-links {
+                justify-content: center;
+                margin-top: 15px;
+            }
+
+            .footer-links li {
+                margin: 0 10px 10px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header-title-large {
+                font-size: 1.8rem;
+            }
+
+            .header-title-small {
+                font-size: 0.7rem;
+            }
+
+            .header-description {
+                font-size: 0.9rem;
+            }
+
+            .model-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .model-title {
+                font-size: 1.2rem;
+            }
+        }
+
+        /* Icon placeholder styles */
+        .icon-placeholder {
+            width: 80px;
+            height: 80px;
+            background-color: var(--primary-color);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 2.5rem;
+            font-weight: bold;
+        }
+
+        .icon-experimental {
+            background-color: var(--tertiary-color);
+        }
+
+        .icon-coming-soon {
+            background-color: #95a5a6;
+        }
+
+        /* CAPTCHA modal styles */
+        #captcha-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        #captcha-modal .modal-content {
+            background: #fff;
+            padding: 32px 24px;
+            border-radius: 10px;
+            box-shadow: 0 4px 24px #0002;
+            text-align: center;
+            max-width: 350px;
+            width: 90%;
+        }
+
+        #captcha-modal h2 {
+            margin-bottom: 16px;
+            font-size: 1.5rem;
+            color: var(--primary-color);
+        }
+
+        #captcha-modal #captcha-img {
+            margin: 12px 0;
+            max-width: 100%;
+        }
+
+        #captcha-modal #captcha-input {
+            padding: 8px;
+            width: 140px;
+            margin-right: 8px;
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+        }
+
+        #captcha-modal #refresh-captcha {
+            margin-left: 8px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        #captcha-modal #refresh-captcha:hover {
+            background-color: #2980b9;
+        }
+
+        #captcha-modal #captcha-submit {
+            padding: 8px 24px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background-color 0.2s;
+            margin-top: 10px;
+        }
+
+        #captcha-modal #captcha-submit:hover {
+            background-color: #2980b9;
+        }
+
+        #captcha-modal #captcha-error {
+            color: #e74c3c;
+            margin-top: 8px;
+            display: none;
+        }
+
+        #captcha-modal button {
+    padding: 8px 16px !important;
+    font-size: 1rem !important;
+    border-radius: 5px !important;
+    background: var(--primary-color) !important;
+    color: white !important;
+    border: none !important;
+    font-weight: 600 !important;
+    cursor: pointer !important;
+    transition: background-color 0.2s !important;
+}
+#captcha-modal button:hover {
+    background-color: #2980b9 !important;
+}
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="header-flex">
+                <div class="header-image">
+                    <img src="https://dgm.de/NFDI/Bilder/NDFI-MatWerk_OntologiebaumSzenen_GU_ohne_hintergrund_nologo-scaled.jpg" alt="NFDI-MatWerk">
+                </div>
+                <div class="header-content">
+                    <p class="header-title-small">NATIONALE FORSCHUNGSDATENINFRASTRUKTUR FÜR MATERIALWISSENSCHAFT & WERKSTOFFTECHNIK</p>
+                    <h1 class="header-title-large">NFDI-MatWerk</h1>
+                    <p class="header-description">On the route towards a <em>National Research Data Infrastructure</em> for Materials Science & Engineering.</p>
+                    <div class="header-buttons">
+                        <a href="https://nfdi-matwerk.de/project" target="_blank" class="header-button">Learn more</a>
+                        <a href="https://nfdi-matwerk.de/new-participant-project" target="_blank" class="header-button">Participate with your Project</a>
+                        <a href="https://zenodo.org/communities/nfdi-matwerk/records?q=&l=list&p=1&s=10&sort=newest" target="_blank" class="header-button">Our Publications on Zenodo</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <h2 class="section-title">Available Simulation Models</h2>
+            
+            <div class="model-grid">
+                <!-- Microstructure Thermal Conductivity - Actual working model -->
+                <div class="model-card">
+                    <div class="model-image">
+                        <div class="icon-placeholder">TC</div>
+                    </div>
+                    <div class="model-content">
+                        <span class="model-status status-active">Active</span>
+                        <h3 class="model-title">Microstructure Thermal Conductivity</h3>
+                        <p class="model-description">Simulate and visualize heat flux and temperature distribution across custom microstructures. Adjust thermal conductivity and direction angle to see their effects on heat transfer.</p>
+                        <a href="index.html" class="model-button">Launch Simulator</a>
+                    </div>
+                </div>
+
+                <!-- Placeholder model 1 - Coming soon -->
+                <div class="model-card">
+                    <div class="model-image">
+                        <div class="icon-placeholder icon-coming-soon">1</div>
+                    </div>
+                    <div class="model-content">
+                        <span class="model-status status-active">Active</span>
+                        <h3 class="model-title">Microstructure Thermal Conductivity (Voila Notebook)</h3>
+                        <p class="model-description">Simulate and visualize heat flux and temperature distribution across custom microstructures. Adjust thermal conductivity and direction angle to see their effects on heat transfer.</p>
+                        <a href="http://localhost:8888" class="model-button">Launch Simulator</a>
+                        <!-- <a href="/voila" class="model-button">Launch Simulator</a> -->
+                    </div>
+                </div>
+
+                <!-- Placeholder model 2 - Coming soon -->
+                <div class="model-card">
+                    <div class="model-image">
+                        <div class="icon-placeholder icon-coming-soon">2</div>
+                    </div>
+                    <div class="model-content">
+                        <span class="model-status status-coming-soon">Coming Soon</span>
+                        <h3 class="model-title">Test 2</h3>
+                        <p class="model-description">Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.</p>
+                        <button class="model-button coming-soon" onclick="showComingSoonModal('Test 2')">Coming Soon</button>
+                    </div>
+                </div>
+
+              
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div>
+                    <div class="footer-logo">NFDI-MatWerk</div>
+                    <p class="footer-text">
+                        Funded by the Deutsche Forschungsgemeinschaft (DFG, German Research Foundation) under the National Research Data Infrastructure – NFDI 38/1 – project number 460247524.
+                    </p>
+                </div>
+                
+                <ul class="footer-links">
+                    <li><a href="https://www.mib.uni-stuttgart.de/dae" target="_blank">About Us</a></li>
+                    <li><a href="#" onclick="showComingSoonModal('Documentation')">Documentation</a></li>
+                    <li><a href="#" onclick="showComingSoonModal('Contact')">Contact</a></li>
+                </ul>
+                
+                <p class="attribution">
+                    © 2025 University of Stuttgart | Heisenberg Professorship Data Analytics in Engineering
+                </p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Coming Soon Modal -->
+    <div id="comingSoonModal" class="modal">
+        <div class="modal-content">
+            <h3 class="modal-title">Coming Soon</h3>
+            <p class="modal-body">
+                <span id="modalModelName"></span> is currently under development and will be available in the near future. Check back later for updates!
+            </p>
+            <button class="modal-close" onclick="hideModal()">Close</button>
+        </div>
+    </div>
+
+    <!-- CAPTCHA Modal -->
+    <div id="captcha-modal" style="position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:9999;">
+      <div style="background:#fff;padding:32px 24px;border-radius:10px;box-shadow:0 4px 24px #0002;text-align:center;max-width:350px;">
+        <h2>Please verify you are human</h2>
+        <img id="captcha-img" src="" alt="CAPTCHA" style="margin:12px 0;max-width:100%;">
+        <div>
+          <input id="captcha-input" type="text" maxlength="6" placeholder="Enter code" style="padding:8px;width:140px;">
+          <button id="refresh-captcha" style="margin-left:8px;">↻</button>
+        </div>
+        <div style="margin-top:10px;">
+          <button id="captcha-submit" style="padding:8px 24px;">Continue</button>
+        </div>
+        <div id="captcha-error" style="color:#e74c3c;margin-top:8px;display:none;"></div>
+      </div>
+    </div>
+
+    <script>
+        
+        // CAPTCHA functionality
+let captchaId = null;
+
+function loadCaptcha() {
+    fetch('/api/captcha').then(r=>r.json()).then(data=>{
+        document.getElementById('captcha-img').src = data.image;
+        captchaId = data.captcha_id;
+        document.getElementById('captcha-input').value = '';
+        document.getElementById('captcha-error').style.display = 'none';
+    });
+}
+
+document.getElementById('refresh-captcha').onclick = loadCaptcha;
+
+// 
+function shouldShowCaptcha() {
+    // Always show CAPTCHA; backend will validate via HTTP-only cookie
+    return true;
+}
+
+document.getElementById('captcha-submit').onclick = function() {
+    const val = document.getElementById('captcha-input').value.trim();
+    if(val.length !== 6) {
+        document.getElementById('captcha-error').textContent = "Please enter the 6-character code.";
+        document.getElementById('captcha-error').style.display = 'block';
+        return;
+    }
+    fetch('/api/verify-captcha', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            captcha_id: captchaId,
+            captcha_code: val
+        })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if(data.success) {
+            document.getElementById('captcha-modal').style.display = 'none';
+            // Do NOT use localStorage here
+        } else {
+            document.getElementById('captcha-error').textContent = data.error || "Incorrect CAPTCHA.";
+            document.getElementById('captcha-error').style.display = 'block';
+            loadCaptcha();
+        }
+    })
+    .catch(() => {
+        document.getElementById('captcha-error').textContent = "Server error. Please try again.";
+        document.getElementById('captcha-error').style.display = 'block';
+        loadCaptcha();
+    });
+};
+
+// On page load, only show CAPTCHA if not verified this session
+window.onload = function() {
+    if (shouldShowCaptcha()) {
+        document.getElementById('captcha-modal').style.display = 'flex';
+        loadCaptcha();
+    } else {
+        document.getElementById('captcha-modal').style.display = 'none';
+    }
+};
+    </script>
+</body>
+</html>

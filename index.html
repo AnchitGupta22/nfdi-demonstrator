@@ -1,0 +1,4605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Microstructure Thermal Simulation</title>
+    
+    <!-- Update to specific Plotly version instead of latest -->
+    <script src="https://cdn.plot.ly/plotly-2.29.0.min.js"></script>
+    
+    <style>
+:root {
+    --primary-color: #3498db;
+    --secondary-color: #2ecc71;
+    --background-color: #f5f7fa;
+    --card-color: #ffffff;
+    --text-color: #333333;
+    --border-color: #e0e0e0;
+    --tab-active-color: #3498db;
+    --tab-inactive-color: #e0e0e0;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--background-color);
+    color: var(--text-color);
+    line-height: 1.6;
+    padding: 20px;
+    overflow-x: hidden; /* Prevent horizontal scroll on mobile */
+}
+
+/* Main container */
+.container {
+    width: 100%;
+    background-color: var(--card-color);
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+/* Column layout */
+.column-layout {
+    display: flex;
+    width: 100%;
+}
+
+.left-column {
+    width: 40%;
+    padding-right: 15px;
+}
+
+.right-column {
+    width: 60%;
+    padding-left: 15px;
+}
+
+/* Right column's internal grid */
+.plots-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+}
+
+h1 {
+    text-align: center;
+    color: var(--primary-color);
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+h2 {
+    color: var(--primary-color);
+    margin-bottom: 15px;
+    font-size: 1.2rem;
+}
+
+.controls-panel {
+    background-color: #f8f9fa;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 20px;
+}
+
+.tab {
+    padding: 10px 20px;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.tab.active {
+    border-bottom: 3px solid var(--tab-active-color);
+    color: var(--tab-active-color);
+}
+
+.tab-content {
+    display: none;
+    padding: 10px 0;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+.controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+.control-group {
+    flex: 1;
+    min-width: 200px;
+    display: flex;
+    flex-direction: column;
+}
+
+label {
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #555;
+}
+
+input[type="number"] {
+    padding: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 16px;
+}
+
+input[type="range"] {
+    width: 100%;
+    height: 8px;
+    -webkit-appearance: none;
+    background: #ddd;
+    border-radius: 4px;
+    outline: none;
+    margin-top: 5px;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    background: var(--primary-color);
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+.value-display {
+    font-size: 14px;
+    color: #666;
+    margin-top: 8px;
+    text-align: center;
+}
+
+button {
+    padding: 12px 24px;
+    background-color: var(--secondary-color);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 600;
+    transition: background-color 0.2s;
+}
+
+button:hover {
+    background-color: #27ae60;
+}
+
+.button-container {
+    display: flex;
+    justify-content: center;
+    margin-top: 15px;
+}
+
+.info-panel {
+    background-color: #e8f4fd;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    font-size: 15px;
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 10px;
+}
+
+.info-item {
+    padding: 5px;
+}
+
+.plot-controls {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.plot-button {
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 6px 12px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.plot-button:hover {
+    background-color: #2980b9;
+    transform: translateY(-1px);
+    box-shadow: 0 3px 5px rgba(0,0,0,0.2);
+}
+
+.plot-button:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+
+/* Style for plotly to fill the container properly */
+.plot > div {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.upload-container {
+    margin-top: 15px;
+    padding: 15px;
+    background-color: #f0f7ff;
+    border-radius: 8px;
+    border: 1px dashed #3498db;
+}
+
+.upload-label {
+    display: block;
+    margin-bottom: 10px;
+    font-weight: 600;
+    color: #555;
+}
+
+.upload-controls {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.upload-info {
+    color: #666;
+    font-size: 0.85em;
+}
+
+#process-upload-btn, #process-drawing-btn {
+    background-color: var(--primary-color);
+    padding: 8px 16px;
+}
+
+#process-upload-btn:disabled, #process-drawing-btn:disabled {
+    background-color: #a0cfee;
+    cursor: not-allowed;
+}
+
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.spinner {
+    width: 50px;
+    height: 50px;
+    border: 5px solid #f3f3f3;
+    border-top: 5px solid var(--primary-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.hidden {
+    display: none;
+}
+
+/* Drawing canvas styles */
+.drawing-container {
+    margin-top: 15px;
+    padding: 15px;
+    background-color: #f0f7ff;
+    border-radius: 8px;
+    border: 1px dashed #3498db;
+}
+
+#drawing-canvas {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    cursor: crosshair !important;
+}
+
+.drawing-tools {
+    display: flex;
+    justify-content: center;
+    margin: 15px 0;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.drawing-tool {
+    padding: 8px 16px;
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.drawing-tool:hover {
+    background-color: #2980b9;
+}
+
+.drawing-tool.active {
+    background-color: #e74c3c;
+}
+
+.brush-size {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.shape-tools {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.shape-tool {
+    padding: 6px 12px;
+    background-color: #7f8c8d;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.shape-tool:hover {
+    background-color: #6c7a7a;
+}
+
+.drawing-hints {
+    text-align: center;
+    margin-top: 10px;
+    color: #555;
+    font-size: 14px;
+}
+
+/* Tooltip */
+.tooltip {
+    position: relative;
+    display: inline-block;
+}
+
+.tooltip .tooltiptext {
+    visibility: hidden;
+    width: 200px;
+    background-color: #555;
+    color: #fff;
+    text-align: center;
+    border-radius: 6px;
+    padding: 8px;
+    position: absolute;
+    z-index: 1;
+    bottom: 125%;
+    left: 50%;
+    margin-left: -100px;
+    opacity: 0;
+    transition: opacity 0.3s;
+    font-size: 12px;
+    font-weight: normal;
+}
+
+.tooltip:hover .tooltiptext {
+    visibility: visible;
+    opacity: 1;
+}
+
+/* Tutorial panel */
+.tutorial-panel {
+    background-color: #fee;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    border-left: 4px solid #e74c3c;
+}
+
+.tutorial-panel h3 {
+    color: #c0392b;
+    margin-bottom: 10px;
+}
+
+.tutorial-panel ul {
+    padding-left: 20px;
+}
+
+.tutorial-panel li {
+    margin-bottom: 5px;
+}
+
+/* IMPROVED UI STYLES */
+/* Update plot container layout for new structure */
+.plot-wrapper {
+    margin-bottom: 20px;
+}
+
+/* Fix the plot size issues when toggling modes */
+.plot {
+    width: 100% !important;
+    height: 0 !important;
+    padding-bottom: 100% !important; /* Square aspect ratio */
+    min-height: 300px;
+    position: relative !important;
+}
+
+/* Custom style for microstructure plot */
+.left-column .plot-wrapper {
+    width: 100%;
+    max-width: 300px;
+    margin: 0 auto;
+}
+
+/* Set fixed size & important styles to affect clientWidth/Height */
+#microstructure-plot {
+    width: 100% !important;
+    max-width: 300px !important;
+    height: 0 !important;
+    padding-bottom: 100% !important;
+    position: relative !important;
+    margin-bottom: 100px !important;
+}
+
+/* Override Plotly's responsive behavior */
+#microstructure-plot .js-plotly-plot {
+    width: 100% !important;
+    height: auto !important;
+}
+
+.drawing-toolbar {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)) !important;
+}
+
+/* Enhance drawing actions layout */
+.drawing-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-top: 15px;
+}
+
+#drawing-canvas-container {
+    display: block !important;
+    width: 100% !important;
+    max-width: 400px !important;
+    height: 0 !important; 
+    padding-bottom: 100% !important;
+    position: relative !important;
+    background-color: black !important;
+    margin: 0 auto !important;
+    border: 2px solid #ccc !important;
+    border-radius: 8px !important;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1) !important;
+    overflow: hidden !important;
+}
+
+/* Add tab transition effects */
+.tab {
+    transition: all 0.3s ease;
+}
+
+.tab:hover {
+    background-color: #f0f7ff;
+}
+
+/* Drawing help */
+.drawing-help {
+    margin-top: 5px;
+    color: #666;
+    font-size: 0.85em;
+}
+
+.drawing-help kbd {
+    background-color: #f7f7f7;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    box-shadow: 0 1px 0 rgba(0,0,0,0.2);
+    color: #333;
+    display: inline-block;
+    font-size: 11px;
+    line-height: 1;
+    padding: 2px 4px;
+    white-space: nowrap;
+}
+
+.drawing-info {
+    margin-top: 10px;
+    padding: 10px;
+    background-color: #f8f9fa;
+    border-radius: 5px;
+    font-size: 0.9em;
+}
+
+/* BUTTON SPACING FIX */
+/* Improve toolbar buttons layout and spacing */
+.toolbar-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 5px;
+    justify-content: center;
+}
+
+/* Fix button spacing and text alignment */
+.drawing-tool, .shape-tool {
+    padding: 8px 12px;
+    margin: 0;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 36px;
+    min-width: 80px;
+}
+
+/* Fix keyboard shortcut spacing */
+.keyboard-shortcut {
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.7);
+    margin-left: 4px;
+    font-weight: normal;
+    display: inline-block;
+    padding: 1px 3px;
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 3px;
+}
+
+/* Improve brush size control spacing */
+.brush-size {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 6px;
+    padding: 4px 8px;
+    background-color: rgba(0, 0, 0, 0.05);
+    border-radius: 4px;
+    width: 100%;
+}
+
+.brush-size label {
+    margin: 0;
+    font-size: 12px;
+    white-space: nowrap;
+    min-width: 32px;
+}
+
+.brush-size input[type="range"] {
+    flex: 1;
+    margin: 0;
+}
+
+#brush-size-value {
+    min-width: 40px;
+    text-align: right;
+    font-size: 12px;
+}
+
+/* Improve toolbar section spacing */
+.toolbar-section {
+    padding: 12px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: all 0.2s ease;
+    margin-bottom: 0;
+}
+
+/* Fix dropdown header spacing */
+.toolbar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    padding: 4px 0;
+    border-bottom: 1px solid rgba(0,0,0,0.1);
+    margin-bottom: 10px;
+}
+
+/* Fix spacing of toolbar content */
+.toolbar-content {
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+    padding-top: 2px;
+}
+
+/* Adjust dropdown toggle icon */
+.toggle-icon {
+    font-size: 14px;
+    transition: transform 0.3s ease;
+    margin-left: 8px;
+    width: 20px;
+    height: 20px;
+    text-align: center;
+    line-height: 20px;
+    background: rgba(0,0,0,0.05);
+    border-radius: 50%;
+}
+
+/* Fix select dropdown spacing */
+#load-drawing-select {
+    padding: 8px;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+    flex: 1;
+    min-width: 120px;
+    font-size: 14px;
+}
+
+/* Color buttons styling */
+.color-buttons {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-left: 10px;
+    padding: 5px;
+    background-color: rgba(0,0,0,0.05);
+    border-radius: 4px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.color-button {
+    padding: 8px 12px;
+    margin: 0;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.2s;
+    background-color: #7f8c8d;
+    color: white;
+}
+
+.color-button.color-active {
+    border: 2px solid #3498db;
+    box-shadow: 0 0 5px rgba(52, 152, 219, 0.5);
+}
+
+#draw-white.color-active {
+    background-color: #ffffff;
+    color: #333333;
+}
+
+#draw-black.color-active {
+    background-color: #333333;
+    color: #ffffff;
+}
+
+/* Canvas operation tool styling */
+.canvas-op-tool {
+    padding: 8px 12px;
+    margin: 0;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.2s;
+    background-color: #7f8c8d;
+    color: white;
+}
+
+.canvas-op-tool:hover {
+    background-color: #6c7a7a;
+}
+
+.drawing-tool.color-active {
+    border: 2px solid #3498db !important;
+    background-color: #ffffff;
+    color: #000000;
+}
+
+.acknowledgements-panel {
+    background-color: #f0f7ff;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    border-left: 4px solid #3498db;
+}
+
+.acknowledgements-panel h3 {
+    color: #2980b9;
+    margin-bottom: 10px;
+    font-size: 1.3rem;
+}
+
+.acknowledgements-panel h4 {
+    color: #2980b9;
+    margin: 15px 0 10px 0;
+    font-size: 1.1rem;
+}
+
+.acknowledgements-panel p {
+    margin-bottom: 10px;
+    line-height: 1.5;
+}
+
+.acknowledgements-panel a {
+    color: #3498db;
+    text-decoration: none;
+}
+
+.acknowledgements-panel a:hover {
+    text-decoration: underline;
+}
+
+/* Enhanced media queries for better mobile support */
+@media (max-width: 1024px) {
+    .column-layout {
+        flex-direction: column;
+    }
+    
+    .left-column, .right-column {
+        width: 100%;
+        padding: 0;
+    }
+}
+
+@media (max-width: 768px) {
+    .container {
+        padding: 10px;
+    }
+    
+    .controls {
+        flex-direction: column;
+    }
+    
+    .plots-grid {
+        grid-template-columns: 1fr;
+        gap: 30px;
+    }
+    
+    .upload-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    /* Better touch targets */
+    .drawing-tool, .shape-tool, .canvas-op-tool, .color-button {
+        padding: 10px 12px !important;
+        min-height: 44px !important; /* Minimum touch target size */
+    }
+    
+    /* Hide keyboard shortcuts on mobile */
+    .keyboard-shortcut {
+        display: none;
+    }
+    
+    /* Fix color button layout */
+    .color-buttons {
+        width: 100%;
+        margin: 5px 0;
+    }
+    
+    /* Stack panels vertically */
+    .drawing-actions {
+        display: flex !important;
+        flex-direction: column !important;
+    }
+    
+    /* Improve toolbar expandability */
+    .toolbar-section {
+        margin-bottom: 8px;
+    }
+    #drawing-canvas-container {
+        max-width: 300px !important;
+    }
+    
+    .drawing-actions {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 15px !important;
+    }
+    
+    /* Improve toolbar section visibility */
+    .toolbar-section {
+        margin-bottom: 10px !important;
+    }
+}
+
+/* Extra small screens */
+@media (max-width: 480px) {
+    /* Further reduce padding */
+    .container {
+        padding: 8px;
+    }
+    
+    /* Simplify tabs */
+    .tab {
+        padding: 8px 10px;
+        font-size: 14px;
+    }
+    
+    /* Stack controls vertically */
+    .control-group {
+        min-width: 100%;
+    }
+    
+    /* Make buttons easier to tap */
+    button {
+        padding: 10px !important;
+        min-width: 80px;
+    }
+}
+
+        /* CAPTCHA modal styles */
+        #captcha-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        #captcha-modal .modal-content {
+            background: #fff;
+            padding: 32px 24px;
+            border-radius: 10px;
+            box-shadow: 0 4px 24px #0002;
+            text-align: center;
+            max-width: 350px;
+            width: 90%;
+        }
+
+        #captcha-modal h2 {
+            margin-bottom: 16px;
+            font-size: 1.5rem;
+            color: var(--primary-color);
+        }
+
+        #captcha-modal #captcha-img {
+            margin: 12px 0;
+            max-width: 100%;
+        }
+
+        #captcha-modal #captcha-input {
+            padding: 8px;
+            width: 140px;
+            margin-right: 8px;
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+        }
+
+        #captcha-modal #refresh-captcha {
+            margin-left: 8px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        #captcha-modal #refresh-captcha:hover {
+            background-color: #2980b9;
+        }
+
+        #captcha-modal #captcha-submit {
+            padding: 8px 24px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background-color 0.2s;
+            margin-top: 10px;
+        }
+
+        #captcha-modal #captcha-submit:hover {
+            background-color: #2980b9;
+        }
+
+        #captcha-modal #captcha-error {
+            color: #e74c3c;
+            margin-top: 8px;
+            display: none;
+        }
+
+        #captcha-modal button {
+    padding: 8px 16px !important;
+    font-size: 1rem !important;
+    border-radius: 5px !important;
+    background: var(--primary-color) !important;
+    color: white !important;
+    border: none !important;
+    font-weight: 600 !important;
+    cursor: pointer !important;
+    transition: background-color 0.2s !important;
+}
+#captcha-modal button:hover {
+    background-color: #2980b9 !important;
+}
+    </style>
+</head>
+<body>
+    <!-- CAPTCHA Modal -->
+<div id="captcha-modal" style="position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:9999;">
+  <div style="background:#fff;padding:32px 24px;border-radius:10px;box-shadow:0 4px 24px #0002;text-align:center;max-width:350px;">
+    <h2>Please verify you are human</h2>
+    <img id="captcha-img" src="" alt="CAPTCHA" style="margin:12px 0;max-width:100%;">
+    <div>
+      <input id="captcha-input" type="text" maxlength="6" placeholder="Enter code" style="padding:8px;width:140px;">
+      <button id="refresh-captcha" style="margin-left:8px;">↻</button>
+    </div>
+    <div style="margin-top:10px;">
+      <button id="captcha-submit" style="padding:8px 24px;">Continue</button>
+    </div>
+    <div id="captcha-error" style="color:#e74c3c;margin-top:8px;display:none;"></div>
+  </div>
+</div>
+
+    <div class="container">
+        <div class="column-layout">
+            <!-- Left column (40%) -->
+            <div class="left-column">
+                <!-- Tutorial Panel -->
+                <div class="tutorial-panel" id="tutorial-panel">
+                    <h3>How to Use This Tool</h3>
+                    <ul>
+                        <li><strong>Choose Method:</strong> Select from preset microstructures, upload your own image, or draw a custom design.</li>
+                        <li><strong>Set Parameters:</strong> Adjust the thermal conductivity ratio (κ₁) and direction angle (α) to see how they affect heat transfer.</li>
+                        <li><strong>Analyze Results:</strong> View heat flux and temperature distribution across your microstructure.</li>
+                        <li><strong>Interact:</strong> Zoom, pan, and download any visualization for further analysis.</li>
+                    </ul>
+                    <div class="button-container">
+                        <button id="hide-tutorial" style="background-color: #e74c3c; padding: 8px 16px; margin-top: 10px;">Hide Tutorial</button>
+                    </div>
+                </div>
+                
+                <!-- Controls Panel -->
+                <div class="controls-panel">
+                    <div class="tabs">
+                        <div class="tab active" data-tab="preset">Preset Microstructures</div>
+                        <div class="tab" data-tab="upload">Upload Image</div>
+                        <div class="tab" data-tab="draw">Draw Custom</div>
+                    </div>
+                    
+                    <!-- Common controls for all modes -->
+                    <div class="controls">
+                        <div class="control-group">
+                            <label for="kappa1" class="tooltip">
+                                κ₁ [W/m²]: conductivity of the 'yellow' phase [W/(m K)] ('blue' phase: 1 W/(m K))
+                                <span class="tooltiptext">Thermal conductivity ratio between phases. Higher values = greater conductivity difference.</span>
+                            </label>
+                            <input type="range" id="kappa1" min="0.1" max="10" step="0.1" value="0.2">
+                            <div class="value-display" id="kappa1-value">0.2</div>
+                        </div>
+                        
+                        <div class="control-group">
+                            <label for="alpha" class="tooltip">
+                                α [°]: angle of the load vector (=temperature gradient) \alpha [degree]
+                                <span class="tooltiptext">Direction of thermal gradient. Changes the direction of heat flow.</span>
+                            </label>
+                            <input type="range" id="alpha" min="0" max="90" step="1" value="0">
+                            <div class="value-display" id="alpha-value">0°</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Preset Microstructures Tab -->
+                    <div id="preset-tab" class="tab-content active">
+                        <div class="control-group">
+                            <label for="ms-id" class="tooltip">
+                                Microstructure ID:
+                                <span class="tooltiptext">Select from available preset microstructures in the database.</span>
+                            </label>
+                            <input type="number" id="ms-id" min="0" value="37">
+                        </div>
+                        
+                        <div class="button-container">
+                            <button id="update-btn">Load Microstructure</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Upload Image Tab -->
+                    <div id="upload-tab" class="tab-content">
+                        <div class="upload-container">
+                            <label for="image-upload" class="upload-label">Upload Custom Microstructure Image:</label>
+                            <div class="upload-controls">
+                                <input type="file" id="image-upload" accept="image/*">
+                                <button id="process-upload-btn" disabled>Process Uploaded Image</button>
+                            </div>
+                            <div class="upload-info">
+                                <small>Supported formats: PNG, JPEG, GIF. Images will be processed as binary (black/white) microstructures, where white represents the conductive phase.</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Draw Custom Tab -->
+                    <div id="draw-tab" class="tab-content">
+                        <div class="drawing-container">
+                            <h2>Draw Custom Microstructure</h2>
+                            
+                            <!-- Drawing toolbar -->
+                            <div class="drawing-toolbar">
+                                <div class="toolbar-section">
+                                    <div class="toolbar-header" onclick="toggleToolbarSection(this)">
+                                        <h4>Drawing Tools</h4>
+                                        <span class="toggle-icon">▼</span>
+                                    </div>
+                                    <div class="toolbar-content">
+                                        <div class="toolbar-buttons">
+                                            <!-- Drawing tools -->
+                                            <button class="drawing-tool active" id="draw-pencil" title="Draw freehand">Pencil <span class="keyboard-shortcut">P</span></button>
+                                            <button class="drawing-tool" id="draw-line" title="Draw a straight line">Line <span class="keyboard-shortcut">L</span></button>
+                                            <button class="drawing-tool" id="draw-eraser" title="Erase to black">Eraser <span class="keyboard-shortcut">E</span></button>
+                                            
+                                            <!-- Color selector - separate div for color buttons -->
+                                            <div class="color-buttons">
+                                                <label>Color:</label>
+                                                <button class="color-button color-active" id="draw-white" title="Set color to white">White <span class="keyboard-shortcut">W</span></button>
+                                                <button class="color-button" id="draw-black" title="Set color to black">Black <span class="keyboard-shortcut">B</span></button>
+                                            </div>
+                                            
+                                            <!-- Brush size control -->
+                                            <div class="brush-size">
+                                                <label for="brush-size">Size:</label>
+                                                <input type="range" id="brush-size" min="1" max="50" value="10" style="width: 100px">
+                                                <span id="brush-size-value">10px</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Canvas operations section - keep separate from drawing tools -->
+                                <div class="toolbar-section">
+                                    <div class="toolbar-header" onclick="toggleToolbarSection(this)">
+                                        <h4>Canvas Operations</h4>
+                                        <span class="toggle-icon">▼</span>
+                                    </div>
+                                    <div class="toolbar-content">
+                                        <div class="toolbar-buttons">
+                                            <button class="canvas-op-tool" id="undo-btn" disabled title="Undo last action">Undo <span class="keyboard-shortcut">Ctrl+Z</span></button>
+                                            <button class="canvas-op-tool" id="redo-btn" disabled title="Redo last undone action">Redo <span class="keyboard-shortcut">Ctrl+Y</span></button>
+                                            <button class="canvas-op-tool" id="clear-canvas" title="Clear the entire canvas to black">Clear</button>
+                                            <button class="canvas-op-tool" id="fill-white" title="Fill the entire canvas with white">Fill White</button>
+                                            <button class="canvas-op-tool" id="fill-black" title="Fill the entire canvas with black">Fill Black</button>
+                                            <button class="canvas-op-tool" id="invert-colors" title="Invert black and white">Invert</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Shapes & patterns section -->
+                                <div class="toolbar-section">
+                                    <div class="toolbar-header" onclick="toggleToolbarSection(this)">
+                                        <h4>Shapes & Patterns</h4>
+                                        <span class="toggle-icon">▼</span>
+                                    </div>
+                                    <div class="toolbar-content">
+                                        <div class="toolbar-buttons">
+                                            <button class="shape-tool" id="draw-circle" title="Draw a white circle">Circle</button>
+                                            <button class="shape-tool" id="draw-rectangle" title="Draw a white rectangle">Rectangle</button>
+                                            <button class="shape-tool" id="draw-triangle" title="Draw a white triangle">Triangle</button>
+                                            <button class="shape-tool" id="draw-grid" title="Generate a grid pattern">Grid</button>
+                                            <button class="shape-tool" id="draw-checkerboard" title="Generate a checkerboard pattern">Checkerboard</button>
+                                            <button class="shape-tool" id="draw-random" title="Generate random particles">Random</button>
+                                            <button class="shape-tool" id="draw-voronoi" title="Generate a cellular pattern">Cellular</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Save & load section -->
+                                <div class="toolbar-section">
+                                    <div class="toolbar-header" onclick="toggleToolbarSection(this)">
+                                        <h4>Save & Load</h4>
+                                        <span class="toggle-icon">▼</span>
+                                    </div>
+                                    <div class="toolbar-content">
+                                        <div class="toolbar-buttons">
+                                            <button class="canvas-op-tool" id="save-drawing-btn" title="Save this drawing locally">Save</button>
+                                            <select id="load-drawing-select" title="Load a saved drawing">
+                                                <option value="">-- Load Drawing --</option>
+                                            </select>
+                                            <button class="canvas-op-tool" id="delete-drawing-btn" title="Delete the selected saved drawing">Delete</button>
+                                            <button class="canvas-op-tool" id="download-drawing-btn" title="Download this drawing as a PNG image">Download Image</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="drawing-actions">
+                                <div id="drawing-canvas-container">
+                                    <canvas id="drawing-canvas" width="400" height="400"></canvas>
+                                </div>
+                                
+                                <div class="drawing-info">
+                                    <div class="drawing-help">
+                                        <h4>Keyboard Shortcuts</h4>
+                                        <ul>
+                                            <li><kbd>W</kbd> - White tool</li>
+                                            <li><kbd>B</kbd> - Black tool</li>
+                                            <li><kbd>E</kbd> - Eraser</li>
+                                            <li><kbd>Ctrl+Z</kbd> - Undo</li>
+                                            <li><kbd>Ctrl+Y</kbd> - Redo</li>
+                                            <li><kbd>Esc</kbd> - Cancel current action</li>
+                                        </ul>
+                                    </div>
+                                    
+                                    <div class="drawing-hints">
+                                        <p><strong>White</strong> = conductive phase (κ₁)</p>
+                                        <p><strong>Black</strong> = base phase (κ₀)</p>
+                                        <p>Draw a two-phase structure for best results.</p>
+                                    </div>
+                                    
+                                    <div class="button-container" style="margin-top: 20px;">
+                                        <button id="process-drawing-btn" class="tool-important">Process Drawing</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Info Panel -->
+                <div class="info-panel" id="info-panel">
+                    <p>Welcome to the Microstructure Thermal Simulation tool. Select a microstructure source (preset, upload, or draw) and adjust parameters to see results.</p>
+                </div>
+                
+                <!-- Microstructure Plot -->
+                <div class="plot-wrapper">
+                    <div class="plot-controls">
+                        <button class="plot-button" data-plot-id="microstructure-plot" data-action="reset" style="display:none;">Reset</button>
+                        <button class="plot-button" data-plot-id="microstructure-plot" data-action="download">Download</button>
+                        <button class="plot-button" data-plot-id="microstructure-plot" data-action="toggle">Toggle Mode</button>
+                    </div>
+                    <div class="plot" id="microstructure-plot"></div>
+                </div>
+            </div>
+            
+            <!-- Right column (60%) -->
+            <div class="right-column">
+                <!-- 2x2 grid for temperature and flux plots -->
+                <div class="plots-grid">
+                    <!-- Temperature Fluctuation (Load Case 1) -->
+                    <div class="plot-wrapper">
+                        <div class="plot-controls">
+                            <button class="plot-button" data-plot-id="temp0-plot" data-action="reset" style="display:none;">Reset</button>
+                            <button class="plot-button" data-plot-id="temp0-plot" data-action="download">Download</button>
+                            <button class="plot-button" data-plot-id="temp0-plot" data-action="toggle">Toggle Mode</button>
+                        </div>
+                        <div class="plot" id="temp0-plot"></div>
+                    </div>
+                    
+                    <!-- Temperature Fluctuation (Load Case 2) -->
+                    <div class="plot-wrapper">
+                        <div class="plot-controls">
+                            <button class="plot-button" data-plot-id="temp1-plot" data-action="reset" style="display:none;">Reset</button>
+                            <button class="plot-button" data-plot-id="temp1-plot" data-action="download">Download</button>
+                            <button class="plot-button" data-plot-id="temp1-plot" data-action="toggle">Toggle Mode</button>
+                        </div>
+                        <div class="plot" id="temp1-plot"></div>
+                    </div>
+                    
+                    <!-- Heat Flux Magnitude (Load Case 1) -->
+                    <div class="plot-wrapper">
+                        <div class="plot-controls">
+                            <button class="plot-button" data-plot-id="flux0-plot" data-action="reset" style="display:none;">Reset</button>
+                            <button class="plot-button" data-plot-id="flux0-plot" data-action="download">Download</button>
+                            <button class="plot-button" data-plot-id="flux0-plot" data-action="toggle">Toggle Mode</button>
+                        </div>
+                        <div class="plot" id="flux0-plot"></div>
+                    </div>
+                    
+                    <!-- Heat Flux Magnitude (Load Case 2) -->
+                    <div class="plot-wrapper">
+                        <div class="plot-controls">
+                            <button class="plot-button" data-plot-id="flux1-plot" data-action="reset" style="display:none;">Reset</button>
+                            <button class="plot-button" data-plot-id="flux1-plot" data-action="download">Download</button>
+                            <button class="plot-button" data-plot-id="flux1-plot" data-action="toggle">Toggle Mode</button>
+                        </div>
+                        <div class="plot" id="flux1-plot"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- NFDI Acknowledgements Section -->
+        <div class="acknowledgements-panel" id="acknowledgements-panel">
+            <h3>NFDI demonstrator by Data Analytics in Engineering</h3>
+            
+            <p><strong>Authors:</strong> Julius Herb (<a href="mailto:herb@mib.uni-stuttgart.de">herb@mib.uni-stuttgart.de</a>), 
+            Sanath Keshav (<a href="mailto:keshav@mib.uni-stuttgart.de">keshav@mib.uni-stuttgart.de</a>), 
+            Felix Fritzen (<a href="mailto:fritzen@mib.uni-stuttgart.de">fritzen@mib.uni-stuttgart.de</a>)</p>
+            
+            <p><strong>Affiliation:</strong> Heisenberg Professorship Data Analytics in Engineering, 
+            Institute of Applied Mechanics, University of Stuttgart | Universitätsstr. 32, 70569 Stuttgart | 
+            <a href="https://www.mib.uni-stuttgart.de/dae" target="_blank">https://www.mib.uni-stuttgart.de/dae</a></p>
+            
+            <h4>Funding acknowledgment</h4>
+            <p>Contributions by Felix Fritzen are partially funded by Deutsche Forschungsgemeinschaft 
+            (DFG, German Research Foundation) under Germany's Excellence Strategy - EXC 2075 – 390740016. 
+            Felix Fritzen is funded by Deutsche Forschungsgemeinschaft (DFG, German Research Foundation) 
+            within the Heisenberg program DFG-FR2702/8 - 406068690 and DFG-FR2702/10 - 517847245.</p>
+            
+            <p>Contributions of Julius Herb are partially funded by the Ministry of Science, Research and 
+            the Arts (MWK) Baden-Württemberg, Germany, within the Artificial Intelligence Software Academy (AISA).</p>
+            
+            <p>The authors acknowledge the support by the Stuttgart Center for Simulation Science (SimTech).</p>
+            
+            <div class="button-container">
+                <button id="hide-acknowledgements" style="background-color: #3498db; padding: 8px 16px; margin-top: 10px;">Hide Acknowledgements</button>
+            </div>
+        </div>
+        <div id="loading" class="loading-overlay hidden">
+            <div class="spinner"></div>
+        </div>
+        
+        <!-- Hidden param-field-plot - will be accessed by JS but not displayed -->
+        <div class="plot" id="param-field-plot" style="display: none;"></div>
+    </div>
+    
+    <script>
+
+
+// Helper function to consistently handle image rotation for all sources
+async function getRotatedImageData(imageData, needsRotation = true) {
+    // For base64 image data
+    if (typeof imageData === 'string' && imageData.startsWith('data:')) {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => {
+                try {
+                    // Create a temporary canvas for processing
+                    const tempCanvas = document.createElement('canvas');
+                    const tempCtx = tempCanvas.getContext('2d');
+                    
+                    if (needsRotation) {
+                        // Set dimensions correctly for 90-degree rotation
+                        tempCanvas.width = img.height;
+                        tempCanvas.height = img.width;
+                        
+                        // Apply 90-degree clockwise rotation
+                        tempCtx.translate(tempCanvas.width, 0);
+                        tempCtx.rotate(Math.PI/2);
+                        tempCtx.drawImage(img, 0, 0);
+                    } else {
+                        // No rotation needed, just copy
+                        tempCanvas.width = img.width;
+                        tempCanvas.height = img.height;
+                        tempCtx.drawImage(img, 0, 0);
+                    }
+                    
+                    // Get the processed image data
+                    resolve(tempCanvas.toDataURL('image/png'));
+                } catch (error) {
+                    reject(error);
+                }
+            };
+            img.onerror = (e) => reject(new Error('Failed to load image'));
+            img.src = imageData;
+        });
+    }
+    
+    // For File objects
+    if (imageData instanceof File) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    // Get the base64 data and process it
+                    const base64Data = e.target.result;
+                    const rotatedData = await getRotatedImageData(base64Data, needsRotation);
+                    resolve(rotatedData);
+                } catch (error) {
+                    reject(error);
+                }
+            };
+            reader.onerror = (e) => reject(new Error('Failed to read file'));
+            reader.readAsDataURL(imageData);
+        });
+    }
+    
+    // If it's something else (like already processed data), just return it
+    return imageData;
+}
+
+// Function to fix the upload image rotation
+async function rotateUploadedImage(imageData) {
+    // Create a temporary canvas to perform the rotation correction
+    const tempCanvas = document.createElement('canvas');
+    const tempCtx = tempCanvas.getContext('2d');
+    
+    // Load the image data
+    const img = new Image();
+    return new Promise((resolve, reject) => {
+        img.onload = () => {
+            try {
+                // Set canvas dimensions to match the image, but swapped for rotation
+                tempCanvas.width = img.height;
+                tempCanvas.height = img.width;
+                
+                // Apply 90-degree clockwise rotation to counter the counter-clockwise flip
+                tempCtx.translate(tempCanvas.width, 0);
+                tempCtx.rotate(Math.PI/2);
+                tempCtx.drawImage(img, 0, 0);
+                
+                // Get the rotated canvas data as base64
+                const rotatedData = tempCanvas.toDataURL('image/png');
+                resolve(rotatedData);
+            } catch (error) {
+                console.error('Error rotating image:', error);
+                reject(error);
+            }
+        };
+        img.onerror = (e) => {
+            console.error('Error loading image:', e);
+            reject(new Error('Failed to load image'));
+        };
+        img.src = imageData;
+    });
+}
+
+// Download the current drawing as a PNG image
+function downloadDrawing() {
+    // Get the canvas
+    const canvas = document.getElementById('drawing-canvas');
+    
+    // Create a temporary link element for downloading
+    const link = document.createElement('a');
+    
+    // Set filename with timestamp for uniqueness
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').substring(0, 19);
+    const filename = `microstructure-drawing-${timestamp}.png`;
+    
+    // Get canvas content as PNG image data URL
+    link.href = canvas.toDataURL('image/png');
+    link.download = filename;
+    
+    // Simulate click to trigger download (compatible with most browsers)
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+// DOM Elements
+const msIdInput = document.getElementById('ms-id');
+const kappa1Input = document.getElementById('kappa1');
+const kappa1Value = document.getElementById('kappa1-value');
+const alphaInput = document.getElementById('alpha');
+const alphaValue = document.getElementById('alpha-value');
+const updateBtn = document.getElementById('update-btn');
+const infoPanel = document.getElementById('info-panel');
+const loadingOverlay = document.getElementById('loading');
+const imageUpload = document.getElementById('image-upload');
+const processUploadBtn = document.getElementById('process-upload-btn');
+const processDrawingBtn = document.getElementById('process-drawing-btn');
+const tabButtons = document.querySelectorAll('.tab');
+const tabContents = document.querySelectorAll('.tab-content');
+const hideTutorialBtn = document.getElementById('hide-tutorial');
+const tutorialPanel = document.getElementById('tutorial-panel');
+
+// Canvas-related elements
+const canvas = document.getElementById('drawing-canvas');
+const ctx = canvas.getContext('2d');
+const drawWhiteBtn = document.getElementById('draw-white');
+const drawBlackBtn = document.getElementById('draw-black');
+const eraserBtn = document.getElementById('draw-eraser');
+const clearCanvasBtn = document.getElementById('clear-canvas');
+const fillWhiteBtn = document.getElementById('fill-white');
+const fillBlackBtn = document.getElementById('fill-black');
+const invertColorsBtn = document.getElementById('invert-colors');
+const brushSizeInput = document.getElementById('brush-size');
+const brushSizeValue = document.getElementById('brush-size-value');
+
+// Shape tools
+const circleBtn = document.getElementById('draw-circle');
+const rectangleBtn = document.getElementById('draw-rectangle');
+const gridBtn = document.getElementById('draw-grid');
+const randomBtn = document.getElementById('draw-random');
+
+// Plot containers
+const microPlot = document.getElementById('microstructure-plot');
+const paramFieldPlot = document.getElementById('param-field-plot');
+const temp0Plot = document.getElementById('temp0-plot');
+const temp1Plot = document.getElementById('temp1-plot');
+const flux0Plot = document.getElementById('flux0-plot');
+const flux1Plot = document.getElementById('flux1-plot');
+
+// API endpoints
+const API_INFO = '/api/info';
+const API_SIMULATE = '/api/simulate';
+const API_UPLOAD = '/api/upload-microstructure';
+const API_DRAWING = '/api/process-drawing';
+
+// App state
+let maxSampleId = 100; // Default, will be updated from API
+let hasSurrogate = false;
+let currentTab = 'preset';
+let isDrawing = false;
+let currentResults = null;
+
+// Drawing state
+let drawColor = '#FFFFFF'; // Default to white
+let brushSize = 10;
+let lastX = 0;
+let lastY = 0;
+
+// Canvas state history for undo/redo
+let canvasHistory = [];
+let currentHistoryIndex = -1;
+const maxHistoryStates = 20; // Limit to prevent memory issues
+
+// FIXED toggleToolbarSection function
+function toggleToolbarSection(header) {
+    const content = header.nextElementSibling;
+    const icon = header.querySelector('.toggle-icon');
+    
+    if (content.classList.contains('collapsed')) {
+        // Expand section
+        content.classList.remove('collapsed');
+        content.style.maxHeight = content.scrollHeight + "px";
+        icon.classList.remove('collapsed');
+    } else {
+        // Collapse section
+        content.classList.add('collapsed');
+        content.style.maxHeight = "0px";
+        icon.classList.add('collapsed');
+    }
+}
+
+// Save current canvas state to history
+function saveCanvasState() {
+    // If we're not at the end of the history, truncate it
+    if (currentHistoryIndex < canvasHistory.length - 1) {
+        canvasHistory = canvasHistory.slice(0, currentHistoryIndex + 1);
+    }
+    
+    // Save current state
+    const state = canvas.toDataURL();
+    canvasHistory.push(state);
+    
+    // Keep history within size limit
+    if (canvasHistory.length > maxHistoryStates) {
+        canvasHistory.shift();
+        currentHistoryIndex = Math.max(0, currentHistoryIndex - 1);
+    } else {
+        currentHistoryIndex = canvasHistory.length - 1;
+    }
+    
+    // Update undo/redo button states
+    document.getElementById('undo-btn').disabled = currentHistoryIndex <= 0;
+    document.getElementById('redo-btn').disabled = currentHistoryIndex >= canvasHistory.length - 1;
+}
+
+// Restore canvas from history
+function restoreCanvasState(index) {
+    if (index < 0 || index >= canvasHistory.length) return;
+    
+    currentHistoryIndex = index;
+    
+    const img = new Image();
+    img.onload = function() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0);
+    };
+    img.src = canvasHistory[index];
+    
+    // Update undo/redo button states
+    document.getElementById('undo-btn').disabled = currentHistoryIndex <= 0;
+    document.getElementById('redo-btn').disabled = currentHistoryIndex >= canvasHistory.length - 1;
+}
+
+// Undo function
+function undoCanvas() {
+    if (currentHistoryIndex > 0) {
+        restoreCanvasState(currentHistoryIndex - 1);
+    }
+}
+
+// Redo function
+function redoCanvas() {
+    if (currentHistoryIndex < canvasHistory.length - 1) {
+        restoreCanvasState(currentHistoryIndex + 1);
+    }
+}
+
+// Save/load functionality
+function saveDrawing() {
+    const name = prompt('Enter a name for this drawing:');
+    if (!name) return;
+    
+    const drawings = JSON.parse(localStorage.getItem('microstructureDrawings') || '{}');
+    drawings[name] = canvas.toDataURL();
+    localStorage.setItem('microstructureDrawings', JSON.stringify(drawings));
+    
+    updateDrawingsList();
+}
+
+function loadDrawing(name) {
+    const drawings = JSON.parse(localStorage.getItem('microstructureDrawings') || '{}');
+    if (!drawings[name]) return;
+    
+    const img = new Image();
+    img.onload = function() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0);
+        saveCanvasState();
+    };
+    img.src = drawings[name];
+    
+    // Show the delete button when a drawing is loaded
+    const deleteBtn = document.getElementById('delete-drawing-btn');
+    if (deleteBtn) {
+        deleteBtn.style.display = 'inline-block';
+    }
+}
+
+function deleteDrawing() {
+    const select = document.getElementById('load-drawing-select');
+    const name = select.value;
+    if (!name) return;
+    
+    if (confirm(`Are you sure you want to delete "${name}"?`)) {
+        const drawings = JSON.parse(localStorage.getItem('microstructureDrawings') || '{}');
+        delete drawings[name];
+        localStorage.setItem('microstructureDrawings', JSON.stringify(drawings));
+        
+        updateDrawingsList();
+        
+        // Hide the delete button after deletion
+        const deleteBtn = document.getElementById('delete-drawing-btn');
+        if (deleteBtn) {
+            deleteBtn.style.display = 'none';
+        }
+        
+        // Reset the dropdown to the first option
+        select.selectedIndex = 0;
+    }
+}
+
+function updateDrawingsList() {
+    const select = document.getElementById('load-drawing-select');
+    const drawings = JSON.parse(localStorage.getItem('microstructureDrawings') || '{}');
+    
+    // Clear all options except the first one
+    while (select.options.length > 1) {
+        select.remove(1);
+    }
+    
+    // Add options for each saved drawing
+    for (const name in drawings) {
+        const option = document.createElement('option');
+        option.value = name;
+        option.textContent = name;
+        select.appendChild(option);
+    }
+}
+
+
+// Updated drawLine function with touch support
+function drawLine() {
+    console.log("Initializing line drawing mode");
+    let startX, startY;
+    let isDrawingLine = false;
+    let tempCanvas = document.createElement('canvas');
+    tempCanvas.width = canvas.width;
+    tempCanvas.height = canvas.height;
+    let tempCtx = tempCanvas.getContext('2d');
+    
+    // Copy current canvas to temp
+    function updateTempCanvas() {
+        tempCanvas.width = canvas.width;
+        tempCanvas.height = canvas.height;
+        tempCtx.clearRect(0, 0, tempCanvas.width, tempCanvas.height);
+        tempCtx.drawImage(canvas, 0, 0);
+    }
+    
+    updateTempCanvas();
+    
+    // Mouse event handlers
+    function startLine(e) {
+        e.preventDefault();
+        updateTempCanvas();
+        isDrawingLine = true;
+        const rect = canvas.getBoundingClientRect();
+        startX = e.clientX - rect.left;
+        startY = e.clientY - rect.top;
+        
+        document.addEventListener('mousemove', drawingLine);
+        document.addEventListener('mouseup', endLine);
+    }
+    
+    function drawingLine(e) {
+        if (!isDrawingLine) return;
+        
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        
+        // Clear canvas and redraw temp canvas
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(tempCanvas, 0, 0);
+        
+        // Draw line
+        ctx.beginPath();
+        ctx.strokeStyle = drawColor;
+        ctx.lineWidth = brushSize;
+        ctx.lineCap = 'round';
+        ctx.moveTo(startX, startY);
+        ctx.lineTo(x, y);
+        ctx.stroke();
+    }
+    
+    function endLine() {
+        if (!isDrawingLine) return;
+        
+        isDrawingLine = false;
+        
+        document.removeEventListener('mousemove', drawingLine);
+        document.removeEventListener('mouseup', endLine);
+        
+        saveCanvasState();
+    }
+    
+    // Touch event handlers
+    function handleTouchStart(e) {
+        e.preventDefault();
+        if (e.touches && e.touches.length > 0) {
+            updateTempCanvas();
+            isDrawingLine = true;
+            const touch = e.touches[0];
+            const rect = canvas.getBoundingClientRect();
+            startX = touch.clientX - rect.left;
+            startY = touch.clientY - rect.top;
+        }
+    }
+    
+    function handleTouchMove(e) {
+        e.preventDefault();
+        if (!isDrawingLine || !e.touches || e.touches.length === 0) return;
+        
+        const touch = e.touches[0];
+        const rect = canvas.getBoundingClientRect();
+        const x = touch.clientX - rect.left;
+        const y = touch.clientY - rect.top;
+        
+        // Clear canvas and redraw temp canvas
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(tempCanvas, 0, 0);
+        
+        // Draw line
+        ctx.beginPath();
+        ctx.strokeStyle = drawColor;
+        ctx.lineWidth = brushSize;
+        ctx.lineCap = 'round';
+        ctx.moveTo(startX, startY);
+        ctx.lineTo(x, y);
+        ctx.stroke();
+    }
+    
+    function handleTouchEnd(e) {
+        e.preventDefault();
+        if (isDrawingLine) {
+            isDrawingLine = false;
+            saveCanvasState();
+        }
+    }
+    
+    // Remove all standard drawing event listeners
+    canvas.removeEventListener('mousedown', startDrawing);
+    canvas.removeEventListener('mousemove', draw);
+    canvas.removeEventListener('mouseup', stopDrawing);
+    canvas.removeEventListener('mouseout', stopDrawing);
+    canvas.removeEventListener('touchstart', handleTouchStart);
+    canvas.removeEventListener('touchmove', handleTouchMove);
+    canvas.removeEventListener('touchend', handleTouchEnd);
+    
+    // Add line tool event listeners for both mouse and touch
+    canvas.addEventListener('mousedown', startLine);
+    canvas.addEventListener('touchstart', handleTouchStart);
+    canvas.addEventListener('touchmove', handleTouchMove);
+    canvas.addEventListener('touchend', handleTouchEnd);
+    
+    // Return a cleanup function
+    return function() {
+        console.log("Cleaning up line drawing mode");
+        
+        // Remove line tool listeners
+        canvas.removeEventListener('mousedown', startLine);
+        document.removeEventListener('mousemove', drawingLine);
+        document.removeEventListener('mouseup', endLine);
+        canvas.removeEventListener('touchstart', handleTouchStart);
+        canvas.removeEventListener('touchmove', handleTouchMove);
+        canvas.removeEventListener('touchend', handleTouchEnd);
+        
+        // Re-enable standard drawing
+        resetCanvasEventListeners();
+        
+        // Clean up resources
+        tempCanvas = null;
+        tempCtx = null;
+    };
+}
+
+// Draw a triangle shape
+function drawTriangle() {
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    const size = Math.min(canvas.width, canvas.height) / 3;
+    
+    ctx.beginPath();
+    ctx.fillStyle = '#FFFFFF';
+    ctx.moveTo(centerX, centerY - size);
+    ctx.lineTo(centerX - size, centerY + size);
+    ctx.lineTo(centerX + size, centerY + size);
+    ctx.closePath();
+    ctx.fill();
+    
+    saveCanvasState();
+}
+
+// Generate checkerboard pattern
+function drawCheckerboard() {
+    const gridSize = 16; // Number of cells in each direction
+    const cellWidth = canvas.width / gridSize;
+    const cellHeight = canvas.height / gridSize;
+    
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    ctx.fillStyle = '#FFFFFF';
+    for (let i = 0; i < gridSize; i++) {
+        for (let j = 0; j < gridSize; j++) {
+            if ((i + j) % 2 === 0) {
+                ctx.fillRect(i * cellWidth, j * cellHeight, cellWidth, cellHeight);
+            }
+        }
+    }
+    
+    saveCanvasState();
+}
+
+// Generate a voronoi-like cellular pattern
+function drawVoronoi() {
+    const numPoints = 30;
+    const points = [];
+    
+    // Generate random points
+    for (let i = 0; i < numPoints; i++) {
+        points.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height
+        });
+    }
+    
+    // Fill canvas with black
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // For each pixel, find closest point and color accordingly
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
+    
+    for (let x = 0; x < canvas.width; x++) {
+        for (let y = 0; y < canvas.height; y++) {
+            let closestDistance = Infinity;
+            let closestIndex = 0;
+            
+            // Find closest point
+            for (let i = 0; i < numPoints; i++) {
+                const dx = points[i].x - x;
+                const dy = points[i].y - y;
+                const distance = dx * dx + dy * dy;
+                
+                if (distance < closestDistance) {
+                    closestDistance = distance;
+                    closestIndex = i;
+                }
+            }
+            
+            // Color based on closest point (even index = white, odd = black)
+            const pixelIndex = (y * canvas.width + x) * 4;
+            const color = closestIndex % 2 === 0 ? 255 : 0;
+            data[pixelIndex] = color;     // R
+            data[pixelIndex + 1] = color; // G
+            data[pixelIndex + 2] = color; // B
+            data[pixelIndex + 3] = 255;   // A
+        }
+    }
+    
+    ctx.putImageData(imageData, 0, 0);
+    saveCanvasState();
+}
+
+// Replace these event listeners in your initializeDrawingTools function
+
+// Pencil tool
+document.getElementById('draw-pencil').addEventListener('click', function() {
+    console.log("Pencil tool clicked");
+    // Make sure to clean up any current drawing mode
+    if (currentDrawingMode) {
+        currentDrawingMode();
+        currentDrawingMode = null;
+    }
+    setActiveDrawingTool(this);
+});
+
+// Line tool
+document.getElementById('draw-line').addEventListener('click', function() {
+    console.log("Line tool clicked");
+    // Make sure to clean up any current drawing mode
+    if (currentDrawingMode) {
+        currentDrawingMode();
+        currentDrawingMode = null;
+    }
+    setActiveDrawingTool(this);
+});
+
+// Eraser tool
+document.getElementById('draw-eraser').addEventListener('click', function() {
+    console.log("Eraser tool clicked");
+    // Make sure to clean up any current drawing mode
+    if (currentDrawingMode) {
+        currentDrawingMode();
+        currentDrawingMode = null;
+    }
+    setActiveDrawingTool(this);
+    drawColor = '#000000'; // Set color to black for eraser
+});
+
+// Updated keyboard shortcuts function
+function setupKeyboardShortcuts() {
+    document.addEventListener('keydown', function(e) {
+        // Only apply shortcuts when draw tab is active
+        if (currentTab !== 'draw') return;
+        
+        // Get tool and color buttons
+        const pencilBtn = document.getElementById('draw-pencil');
+        const lineBtn = document.getElementById('draw-line');
+        const eraserBtn = document.getElementById('draw-eraser');
+        const whiteBtn = document.getElementById('draw-white');
+        const blackBtn = document.getElementById('draw-black');
+        
+        // Ctrl+Z for undo
+        if (e.ctrlKey && e.key === 'z') {
+            e.preventDefault();
+            undoCanvas();
+        }
+        
+        // Ctrl+Y for redo
+        if (e.ctrlKey && e.key === 'y') {
+            e.preventDefault();
+            redoCanvas();
+        }
+        
+        // 'P' for pencil tool
+        if (e.key === 'p' && !e.ctrlKey && !e.altKey) {
+            e.preventDefault();
+            setActiveDrawingTool(pencilBtn);
+        }
+        
+        // 'L' for line tool
+        if (e.key === 'l' && !e.ctrlKey && !e.altKey) {
+            e.preventDefault();
+            setActiveDrawingTool(lineBtn);
+        }
+        
+        // 'E' for eraser
+        if (e.key === 'e' && !e.ctrlKey && !e.altKey) {
+            e.preventDefault();
+            setActiveDrawingTool(eraserBtn);
+            // Eraser always uses black
+            drawColor = '#000000';
+        }
+        
+        // 'W' for white color - only changes color, not tool
+        if (e.key === 'w' && !e.ctrlKey && !e.altKey) {
+            e.preventDefault();
+            drawColor = '#FFFFFF';
+            // Update color button appearance
+            whiteBtn.classList.add('color-active');
+            blackBtn.classList.remove('color-active');
+        }
+        
+        // 'B' for black color - only changes color, not tool
+        if (e.key === 'b' && !e.ctrlKey && !e.altKey) {
+            e.preventDefault();
+            drawColor = '#000000';
+            // Update color button appearance
+            blackBtn.classList.add('color-active');
+            whiteBtn.classList.remove('color-active');
+        }
+        
+        // Escape to cancel current action
+        if (e.key === 'Escape') {
+            // Reset to pencil tool
+            setActiveDrawingTool(pencilBtn);
+        }
+    });
+}
+
+// Variable to track special drawing modes
+let currentDrawingMode = null;
+let lineDrawingActive = false;
+let activeDrawingTool = 'draw-pencil'; // Track the active tool ID
+
+// Update the tool button event listeners
+function initializeDrawingTools() {
+    // Initialize undo/redo buttons
+    document.getElementById('undo-btn').addEventListener('click', undoCanvas);
+    document.getElementById('redo-btn').addEventListener('click', redoCanvas);
+    document.getElementById('undo-btn').disabled = true;
+    
+    // Initialize save/load
+    document.getElementById('save-drawing-btn').addEventListener('click', saveDrawing);
+    
+    // Updated dropdown change event listener
+    document.getElementById('load-drawing-select').addEventListener('change', function() {
+        if (this.value) {
+            loadDrawing(this.value);
+            // Do NOT reset the dropdown here so the delete button works
+            
+            // Show the delete button
+            const deleteBtn = document.getElementById('delete-drawing-btn');
+            if (deleteBtn) {
+                deleteBtn.style.display = 'inline-block';
+            }
+        } else {
+            // Hide delete button if "-- Load Drawing --" is selected
+            const deleteBtn = document.getElementById('delete-drawing-btn');
+            if (deleteBtn) {
+                deleteBtn.style.display = 'none';
+            }
+        }
+    });
+    
+    document.getElementById('delete-drawing-btn').addEventListener('click', deleteDrawing);
+    document.getElementById('download-drawing-btn').addEventListener('click', downloadDrawing);
+    updateDrawingsList();
+    
+    // Define all tool buttons
+    const pencilBtn = document.getElementById('draw-pencil');
+    const whiteBtn = document.getElementById('draw-white');
+    const blackBtn = document.getElementById('draw-black');
+    const eraserBtn = document.getElementById('draw-eraser');
+    const lineBtn = document.getElementById('draw-line');
+    const clearCanvasBtn = document.getElementById('clear-canvas');
+    const fillWhiteBtn = document.getElementById('fill-white');
+    const fillBlackBtn = document.getElementById('fill-black');
+    const invertColorsBtn = document.getElementById('invert-colors');
+    
+    // Initialize the pencil tool with proper cleanup
+    pencilBtn.addEventListener('click', function() {
+        setActiveDrawingTool(this);
+        // Keep current color
+    });
+    
+    // Initialize white color button 
+    whiteBtn.addEventListener('click', function() {
+        drawColor = '#FFFFFF';
+        // Highlight this color button
+        whiteBtn.classList.add('color-active');
+        blackBtn.classList.remove('color-active');
+    });
+    
+    // Initialize black color button
+    blackBtn.addEventListener('click', function() {
+        drawColor = '#000000';
+        // Highlight this color button
+        blackBtn.classList.add('color-active');
+        whiteBtn.classList.remove('color-active');
+    });
+    
+    // Initialize eraser with proper cleanup
+    eraserBtn.addEventListener('click', function() {
+        setActiveDrawingTool(this);
+        // Eraser always uses black
+        drawColor = '#000000';
+    });
+    
+    // Initialize line tool with proper cleanup
+    lineBtn.addEventListener('click', function() {
+        setActiveDrawingTool(this);
+    });
+    
+    // Canvas operation buttons
+    
+    // Clear the canvas
+    clearCanvasBtn.addEventListener('click', () => {
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        saveCanvasState();
+    });
+    
+    // Fill the canvas with white
+    fillWhiteBtn.addEventListener('click', () => {
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        saveCanvasState();
+    });
+    
+    // Fill the canvas with black
+    fillBlackBtn.addEventListener('click', () => {
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        saveCanvasState();
+    });
+    
+    // Invert canvas colors
+    invertColorsBtn.addEventListener('click', () => {
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imageData.data;
+        
+        for (let i = 0; i < data.length; i += 4) {
+            data[i] = 255 - data[i];       // Red
+            data[i + 1] = 255 - data[i + 1]; // Green
+            data[i + 2] = 255 - data[i + 2]; // Blue
+        }
+        
+        ctx.putImageData(imageData, 0, 0);
+        saveCanvasState();
+    });
+    
+    // Initialize shape tools (keep your existing code)
+    
+    // Set up keyboard shortcuts
+    setupKeyboardShortcuts();
+    
+    // Default to white color
+    drawColor = '#FFFFFF';
+    whiteBtn.classList.add('color-active');
+    
+    // Ensure clean event state
+    resetCanvasEventListeners();
+    
+    // Save initial canvas state
+    saveCanvasState();
+}
+
+// Modified stopDrawing function to save state history
+function stopDrawing() {
+    if (isDrawing) {
+        isDrawing = false;
+        saveCanvasState(); // Save state after drawing ends
+    }
+}
+
+// Initialize canvas with black background
+ctx.fillStyle = '#000000';
+ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+// Make sure tab switching updates the currentTab variable
+tabButtons.forEach(button => {
+    button.addEventListener('click', () => {
+        const tabId = button.getAttribute('data-tab');
+        
+        // Update active tab button
+        tabButtons.forEach(btn => btn.classList.remove('active'));
+        button.classList.add('active');
+        
+        // Update active tab content
+        tabContents.forEach(content => content.classList.remove('active'));
+        document.getElementById(`${tabId}-tab`).classList.add('active');
+        
+        // Set current tab - this variable is crucial for updateParametersOnly
+        currentTab = tabId;
+    });
+});
+
+// Drawing tools setup
+drawWhiteBtn.addEventListener('click', () => {
+    setActiveDrawingTool(drawWhiteBtn);
+    drawColor = '#FFFFFF';
+});
+
+drawBlackBtn.addEventListener('click', () => {
+    setActiveDrawingTool(drawBlackBtn);
+    drawColor = '#000000';
+});
+
+eraserBtn.addEventListener('click', () => {
+    setActiveDrawingTool(eraserBtn);
+    drawColor = '#000000';
+});
+
+// Update brush size
+brushSizeInput.addEventListener('input', () => {
+    brushSize = parseInt(brushSizeInput.value);
+    brushSizeValue.textContent = `${brushSize}px`;
+});
+
+// Canvas drawing functions
+canvas.addEventListener('mousedown', startDrawing);
+canvas.addEventListener('mouseup', stopDrawing);
+canvas.addEventListener('mouseout', stopDrawing);
+canvas.addEventListener('mousemove', draw);
+
+// Touch support for mobile devices
+canvas.addEventListener('touchstart', handleTouchStart);
+canvas.addEventListener('touchend', handleTouchEnd);
+canvas.addEventListener('touchmove', handleTouchMove);
+
+// Improved touch handling for mobile
+function handleTouchStart(e) {
+    e.preventDefault();
+    
+    // Make sure we have a valid touch point
+    if (e.touches && e.touches.length > 0) {
+        const touch = e.touches[0];
+        const rect = canvas.getBoundingClientRect();
+        
+        // Calculate position relative to canvas
+        const x = touch.clientX - rect.left;
+        const y = touch.clientY - rect.top;
+        
+        // Start drawing at the touch point
+        lastX = x;
+        lastY = y;
+        isDrawing = true;
+        
+        // If we're in line drawing mode, handle that specially
+        if (currentDrawingMode) {
+            // Just set the variables - the mode handler will do the rest
+        } else {
+            // Normal drawing - draw a dot at touch start 
+            ctx.beginPath();
+            ctx.fillStyle = drawColor;
+            ctx.arc(x, y, brushSize/2, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+}
+
+function handleTouchEnd(e) {
+    e.preventDefault();
+    if (isDrawing) {
+        isDrawing = false;
+        saveCanvasState();
+    }
+}
+
+function handleTouchMove(e) {
+    e.preventDefault();
+    
+    if (!isDrawing) return;
+    
+    // Ensure we have a valid touch point
+    if (e.touches && e.touches.length > 0) {
+        const touch = e.touches[0];
+        const rect = canvas.getBoundingClientRect();
+        
+        // Calculate position relative to canvas
+        const x = touch.clientX - rect.left;
+        const y = touch.clientY - rect.top;
+        
+        if (currentDrawingMode) {
+            // Let the mode handler deal with this
+        } else {
+            // Normal drawing
+            ctx.beginPath();
+            ctx.strokeStyle = drawColor;
+            ctx.lineWidth = brushSize;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            
+            ctx.moveTo(lastX, lastY);
+            ctx.lineTo(x, y);
+            ctx.stroke();
+        }
+        
+        lastX = x;
+        lastY = y;
+    }
+}
+
+function startDrawing(e) {
+    isDrawing = true;
+    const rect = canvas.getBoundingClientRect();
+    lastX = e.clientX - rect.left;
+    lastY = e.clientY - rect.top;
+}
+
+function draw(e) {
+    if (!isDrawing) return;
+    
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    ctx.beginPath();
+    ctx.strokeStyle = drawColor;
+    ctx.lineWidth = brushSize;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    
+    ctx.moveTo(lastX, lastY);
+    ctx.lineTo(x, y);
+    ctx.stroke();
+    
+    lastX = x;
+    lastY = y;
+}
+
+function setActiveDrawingTool(activeButton) {
+    const toolId = activeButton.id;
+    console.log("Setting active tool to:", toolId);
+    
+    // Save previous tool state
+    const previousToolId = activeDrawingTool;
+    
+    // If we're already using this tool, don't do anything
+    if (toolId === previousToolId && toolId !== 'draw-line') {
+        console.log("Tool already active:", toolId);
+        return;
+    }
+    
+    // First, always clean up any existing special drawing mode
+    if (currentDrawingMode) {
+        console.log("Cleaning up previous drawing mode");
+        currentDrawingMode();
+        currentDrawingMode = null;
+    }
+    
+    // Remove active class from all drawing tools
+    document.querySelectorAll('.drawing-tool').forEach(btn => {
+        if (btn.id !== 'clear-canvas' && 
+            btn.id !== 'fill-white' && 
+            btn.id !== 'fill-black' && 
+            btn.id !== 'invert-colors' && 
+            btn.id !== 'process-drawing-btn') {
+            btn.classList.remove('active');
+        }
+    });
+    
+    // Add active class to the selected button
+    activeButton.classList.add('active');
+    
+    // Update active tool tracking
+    activeDrawingTool = toolId;
+    
+    // Force clean reset of canvas event listeners
+    resetCanvasEventListeners();
+    
+    // If switching to line tool, initialize line drawing mode
+    if (toolId === 'draw-line') {
+        console.log("Initializing line tool");
+        currentDrawingMode = drawLine();
+    }
+    
+    // If switching to eraser, set color to black
+    if (toolId === 'draw-eraser') {
+        drawColor = '#000000';
+    }
+}
+
+
+// Function to reset canvas event listeners to default drawing state
+function resetCanvasEventListeners() {
+    console.log("Resetting canvas event listeners");
+    
+    // First remove ALL possible event listeners
+    canvas.removeEventListener('mousedown', startDrawing);
+    canvas.removeEventListener('mousemove', draw);
+    canvas.removeEventListener('mouseup', stopDrawing);
+    canvas.removeEventListener('mouseout', stopDrawing);
+    canvas.removeEventListener('touchstart', handleTouchStart);
+    canvas.removeEventListener('touchmove', handleTouchMove);
+    canvas.removeEventListener('touchend', handleTouchEnd);
+    
+    // Then add back the standard drawing event listeners
+    canvas.addEventListener('mousedown', startDrawing);
+    canvas.addEventListener('mousemove', draw);
+    canvas.addEventListener('mouseup', stopDrawing);
+    canvas.addEventListener('mouseout', stopDrawing);
+    canvas.addEventListener('touchstart', handleTouchStart);
+    canvas.addEventListener('touchmove', handleTouchMove);
+    canvas.addEventListener('touchend', handleTouchEnd);
+}
+
+// Clear the canvas
+clearCanvasBtn.addEventListener('click', () => {
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    saveCanvasState();
+});
+
+// Fill the canvas with white
+fillWhiteBtn.addEventListener('click', () => {
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    saveCanvasState();
+});
+
+// Fill the canvas with black
+fillBlackBtn.addEventListener('click', () => {
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    saveCanvasState();
+});
+
+// Invert canvas colors
+invertColorsBtn.addEventListener('click', () => {
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
+    
+    for (let i = 0; i < data.length; i += 4) {
+        data[i] = 255 - data[i];       // Red
+        data[i + 1] = 255 - data[i + 1]; // Green
+        data[i + 2] = 255 - data[i + 2]; // Blue
+    }
+    
+    ctx.putImageData(imageData, 0, 0);
+    saveCanvasState();
+});
+
+// Shape drawing tools
+circleBtn.addEventListener('click', () => {
+    // Draw a white circle in the center
+    const radius = Math.min(canvas.width, canvas.height) / 4;
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fill();
+    saveCanvasState();
+});
+
+rectangleBtn.addEventListener('click', () => {
+    // Draw a white rectangle in the center
+    const width = canvas.width / 2;
+    const height = canvas.height / 2;
+    const x = (canvas.width - width) / 2;
+    const y = (canvas.height - height) / 2;
+    
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(x, y, width, height);
+    saveCanvasState();
+});
+
+gridBtn.addEventListener('click', () => {
+    // Draw a grid pattern
+    const gridSize = 8; // Number of cells in each direction
+    const cellWidth = canvas.width / gridSize;
+    const cellHeight = canvas.height / gridSize;
+    
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    ctx.fillStyle = '#FFFFFF';
+    for (let i = 0; i < gridSize; i++) {
+        for (let j = 0; j < gridSize; j++) {
+            // Alternating pattern
+            if ((i + j) % 2 === 0) {
+                ctx.fillRect(i * cellWidth, j * cellHeight, cellWidth, cellHeight);
+            }
+        }
+    }
+    saveCanvasState();
+});
+
+randomBtn.addEventListener('click', () => {
+    // Draw random white particles
+    const numParticles = 100;
+    const maxRadius = 20;
+    
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    ctx.fillStyle = '#FFFFFF';
+    for (let i = 0; i < numParticles; i++) {
+        const x = Math.random() * canvas.width;
+        const y = Math.random() * canvas.height;
+        const radius = 5 + Math.random() * maxRadius;
+        
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, 2 * Math.PI);
+        ctx.fill();
+    }
+    saveCanvasState();
+});
+
+// Hide tutorial
+hideTutorialBtn.addEventListener('click', () => {
+    tutorialPanel.style.display = 'none';
+});
+document.addEventListener('DOMContentLoaded', function() {
+    const hideAcknowledgementsBtn = document.getElementById('hide-acknowledgements');
+    const acknowledgementsPanel = document.getElementById('acknowledgements-panel');
+    
+    if (hideAcknowledgementsBtn && acknowledgementsPanel) {
+        hideAcknowledgementsBtn.addEventListener('click', () => {
+            acknowledgementsPanel.style.display = 'none';
+        });
+    }
+
+        const deleteBtn = document.getElementById('delete-drawing-btn');
+    if (deleteBtn) {
+        // Remove the inline display:none style
+        deleteBtn.removeAttribute('style');
+        // Set display to none through JavaScript (this makes it controllable)
+        deleteBtn.style.display = 'none';
+    }
+});
+
+// Updated line tool button initialization
+document.addEventListener('DOMContentLoaded', function() {
+    const lineBtn = document.getElementById('draw-line');
+    if (lineBtn) {
+        lineBtn.addEventListener('click', function() {
+            console.log("Line button clicked");
+            
+            // Clear any existing drawing mode
+            if (currentDrawingMode) {
+                currentDrawingMode();
+                currentDrawingMode = null;
+            }
+            
+            // Make this tool active
+            setActiveDrawingTool(this);
+        });
+    }
+    
+    // Fix event listeners on all other drawing tools
+    const pencilBtn = document.getElementById('draw-pencil');
+    if (pencilBtn) {
+        pencilBtn.addEventListener('click', function() {
+            console.log("Pencil button clicked");
+            setActiveDrawingTool(this);
+        });
+    }
+    
+    const eraserBtn = document.getElementById('draw-eraser');
+    if (eraserBtn) {
+        eraserBtn.addEventListener('click', function() {
+            console.log("Eraser button clicked");
+            setActiveDrawingTool(this);
+        });
+    }
+});
+
+// Debounce function to limit frequent updates
+function debounce(func, wait) {
+    let timeout;
+    return function(...args) {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(this, args), wait);
+    };
+}
+
+// Initialize the application
+async function initApp() {
+    try {
+        const response = await fetch(API_INFO);
+        if (!response.ok) {
+            throw new Error('Failed to get API info');
+        }
+        
+        const info = await response.json();
+        maxSampleId = info.sample_count - 1;
+        hasSurrogate = info.has_surrogate;
+        
+        // Update UI with limits
+        msIdInput.max = maxSampleId;
+        
+        // Show info
+        infoPanel.innerHTML = `
+            <p>
+                <strong>Dataset:</strong> ${info.sample_count} microstructures available (ID: 0-${maxSampleId})
+                <strong>Device:</strong> ${info.device}
+                <strong>Surrogate model:</strong> ${hasSurrogate ? 'Available' : 'Not available'}
+            </p>
+            <p>Select a microstructure source and adjust parameters to see thermal simulation results.</p>
+        `;
+        
+        // Run initial simulation
+        runSimulation();
+        
+    } catch (error) {
+        console.error('Error initializing app:', error);
+        infoPanel.innerHTML = `<p style="color: red;">Error initializing application: ${error.message}</p>`;
+    }
+}
+
+// Helper function to transpose a matrix - using iterative approach to avoid stack overflow
+function transposeMatrix(matrix) {
+    // Check if input is valid
+    if (!Array.isArray(matrix) || matrix.length === 0) {
+        console.error("Invalid matrix for transposition", matrix);
+        return matrix; // Return original if invalid
+    }
+    
+    // Handle non-matrix arrays by returning original
+    if (!Array.isArray(matrix[0])) {
+        return matrix;
+    }
+    
+    const rows = matrix.length;
+    const cols = matrix[0].length;
+    const result = new Array(cols);
+    
+    // Iterative approach instead of using map (avoids call stack issues)
+    for (let j = 0; j < cols; j++) {
+        result[j] = new Array(rows);
+        for (let i = 0; i < rows; i++) {
+            result[j][i] = matrix[i][j];
+        }
+    }
+    
+    return result;
+}
+
+// Update colorbar ticks based on visible data range - with better error handling
+function updateColorbarTicks(plotId) {
+    try {
+        const plotElement = document.getElementById(plotId);
+        if (!plotElement || !plotElement.data || !plotElement.data[0] || !plotElement.layout) return;
+        
+        // Get current axis ranges
+        const xRange = plotElement.layout.xaxis.range;
+        const yRange = plotElement.layout.yaxis.range;
+        
+        if (!xRange || !yRange) return; // No zoom has occurred yet
+        
+        // Get data and dimensions
+        const data = plotElement.data[0].z;
+        if (!data || !data[0]) return;
+        
+        const rows = data.length;
+        const cols = data[0].length;
+        
+        // Convert axis ranges to data indices, with careful bounds checking
+        const xStart = Math.max(0, Math.floor(xRange[0]));
+        const xEnd = Math.min(cols - 1, Math.ceil(xRange[1]));
+        const yStart = Math.max(0, Math.floor(yRange[0]));
+        const yEnd = Math.min(rows - 1, Math.ceil(yRange[1]));
+        
+        // Check for valid range
+        if (xStart > xEnd || yStart > yEnd) return;
+        
+        // Find min/max in visible area
+        let min = Infinity;
+        let max = -Infinity;
+        
+        try {
+            // More careful iteration with bounds checking
+            for (let i = Math.max(0, yStart); i <= Math.min(rows - 1, yEnd); i++) {
+                if (!data[i]) continue;
+                for (let j = Math.max(0, xStart); j <= Math.min(cols - 1, xEnd); j++) {
+                    if (data[i] && typeof data[i][j] === 'number' && !isNaN(data[i][j])) {
+                        if (data[i][j] < min) min = data[i][j];
+                        if (data[i][j] > max) max = data[i][j];
+                    }
+                }
+            }
+        } catch (e) {
+            console.error("Error finding min/max", e);
+            return; // Abort if we can't find min/max
+        }
+        
+        // If we couldn't find valid min/max, don't update
+        if (min === Infinity || max === -Infinity || isNaN(min) || isNaN(max)) return;
+        
+        // For temperature plots
+        if (plotId.includes('temp')) {
+            // Generate more ticks between min and max (but keep within -0.08 to 0.08 range)
+            min = Math.max(-0.08, min);
+            max = Math.min(0.08, max);
+            
+            // Generate ticks at 0.01 intervals
+            const ticks = [];
+            const roundedMin = Math.floor(min * 100) / 100;
+            const roundedMax = Math.ceil(max * 100) / 100;
+            
+            for (let i = roundedMin; i <= roundedMax; i += 0.01) {
+                ticks.push(parseFloat(i.toFixed(2)));
+            }
+            
+            // Only attempt update if we have valid ticks
+            if (ticks.length > 0) {
+                try {
+                    Plotly.relayout(plotElement, {
+                        'coloraxis.colorbar.tickvals': ticks,
+                        'coloraxis.colorbar.ticktext': ticks.map(val => val.toFixed(2))
+                    });
+                } catch (e) {
+                    console.error("Error updating colorbar", e);
+                }
+            }
+        }
+        
+        // For flux plots
+        else if (plotId.includes('flux')) {
+            // Generate more ticks between min and max (but keep within 0.4 to 1.4 range)
+            min = Math.max(0.4, min);
+            max = Math.min(1.4, max);
+            
+            // Generate ticks at 0.1 intervals
+            const ticks = [];
+            const roundedMin = Math.floor(min * 10) / 10;
+            const roundedMax = Math.ceil(max * 10) / 10;
+            
+            for (let i = roundedMin; i <= roundedMax; i += 0.1) {
+                ticks.push(parseFloat(i.toFixed(1)));
+            }
+            
+            // Only attempt update if we have valid ticks
+            if (ticks.length > 0) {
+                try {
+                    Plotly.relayout(plotElement, {
+                        'coloraxis.colorbar.tickvals': ticks,
+                        'coloraxis.colorbar.ticktext': ticks.map(val => val.toFixed(1))
+                    });
+                } catch (e) {
+                    console.error("Error updating colorbar", e);
+                }
+            }
+        }
+    } catch (error) {
+        console.error("Error updating colorbar ticks:", error);
+    }
+}
+
+// Helper function to set up efficient zoom handlers (reused in createHeatmap and toggleDisplayMode)
+function setupEfficientZoomHandlers(container) {
+    // Store last zoom state to avoid unnecessary updates
+    if (!container._lastZoomState) {
+        container._lastZoomState = null;
+    }
+    
+    // Heavily debounced update function for better performance
+    const efficientUpdateTicks = debounce(function() {
+        try {
+            // Skip update if plot is being manipulated
+            if (container._isZooming) return;
+            
+            // Get current layout
+            if (!container.layout || !container.layout.xaxis || !container.layout.yaxis) return;
+            
+            // Get zoom state
+            const xRange = container.layout.xaxis.range;
+            const yRange = container.layout.yaxis.range;
+            if (!xRange || !yRange) return;
+            
+            // Create zoom state string for comparison
+            const zoomState = JSON.stringify({ xRange, yRange });
+            
+            // Skip if zoom hasn't changed significantly
+            if (container._lastZoomState === zoomState) return;
+            container._lastZoomState = zoomState;
+            
+            // Now it's safe to update ticks
+            updateColorbarTicks(container.id);
+        } catch (err) {
+            console.error('Error in efficient update:', err);
+        }
+    }, 500); // Significant delay for better performance
+    
+    // Use separate handlers for different events
+    container.on('plotly_relayout', function(eventData) {
+        // Skip updates during active zooming (set by wheel events)
+        if (container._isZooming) return;
+        
+        // Check if this is a zoom/pan event
+        const isZoomEvent = eventData && (
+            eventData['xaxis.range[0]'] !== undefined ||
+            eventData['yaxis.range[0]'] !== undefined
+        );
+        
+        if (isZoomEvent) {
+            efficientUpdateTicks();
+        }
+    });
+    
+    // Add wheel event listener to detect active zooming
+    container.addEventListener('wheel', function() {
+        // Mark as actively zooming
+        container._isZooming = true;
+        
+        // Clear existing timeout if any
+        if (container._zoomTimeout) {
+            clearTimeout(container._zoomTimeout);
+        }
+        
+        // Set timeout to mark end of zooming and update ticks once
+        container._zoomTimeout = setTimeout(function() {
+            container._isZooming = false;
+            efficientUpdateTicks();
+        }, 500); // Wait for zooming to finish
+    }, { passive: true }); // Use passive listener for better performance
+}
+
+// Updated createHeatmap function to be more responsive
+function createHeatmap(container, data, title, colorscale = 'Jet', options = {}) {
+    try {
+        // Remove any existing plots to prevent memory leaks
+        Plotly.purge(container);
+        
+        // Safely transpose the data - handle potential errors
+        let transposedData;
+        try {
+            transposedData = transposeMatrix(data);
+        } catch (error) {
+            console.error("Error transposing data:", error);
+            transposedData = data; // Fallback to original data
+        }
+        
+        // Set up trace with default options
+        const trace = {
+            z: transposedData,
+            type: 'heatmap',
+            colorscale: colorscale,
+            showscale: true
+        };
+        
+        // Apply custom zmin/zmax if specified in options
+        if (options.zmin !== undefined) {
+            trace.zmin = options.zmin;
+        }
+        
+        if (options.zmax !== undefined) {
+            trace.zmax = options.zmax;
+        }
+        
+        // Determine if this is a small screen
+        const isSmallScreen = window.innerWidth < 768;
+        
+        // Set up layout with responsive options
+        const layout = {
+            title: {
+                text: title,
+                font: { size: isSmallScreen ? 14 : 16 }
+            },
+            margin: { t: 40, r: 40, b: 30, l: 40 },
+            xaxis: { 
+                showticklabels: false,
+                // Set initial range explicitly
+                range: [0, transposedData[0].length],
+                constrain: 'domain'
+            },
+            yaxis: { 
+                showticklabels: false,
+                // Set initial range explicitly
+                range: [0, transposedData.length],
+                constrain: 'domain',
+                scaleanchor: 'x',
+                scaleratio: 1
+            },
+            coloraxis: {
+                colorbar: {
+                    thickness: isSmallScreen ? 15 : 20,
+                    len: 0.7,
+                    // Make colorbar font smaller on mobile
+                    tickfont: { size: isSmallScreen ? 10 : 12 }
+                }
+            },
+            // Make it responsive
+            autosize: true
+        };
+        
+        // Apply custom options if provided - use layout.coloraxis.colorbar
+        if (options.colorbar) {
+            layout.coloraxis.colorbar = {
+                ...layout.coloraxis.colorbar,
+                ...options.colorbar
+            };
+        }
+        
+        const config = {
+            responsive: true,
+            displayModeBar: false,
+            scrollZoom: false  // Enable scroll zoom on mobile too
+        };
+        
+        // Use a try-catch for the plot creation
+        try {
+            Plotly.newPlot(container, [trace], layout, config).then(() => {
+                // Store original dimensions for reference
+                container._origData = {
+                    width: transposedData[0].length,
+                    height: transposedData.length
+                };
+            });
+            
+            // Set up zoom handlers
+            setupEfficientZoomHandlers(container);
+            
+        } catch (plotError) {
+            console.error("Error creating plot:", plotError);
+            
+            // Try a simpler fallback version without event handlers
+            try {
+                Plotly.newPlot(container, [trace], layout, {
+                    responsive: true,
+                    displayModeBar: false
+                });
+            } catch (fallbackError) {
+                console.error("Fallback plot also failed:", fallbackError);
+                container.innerHTML = `<div style="color:red;padding:20px;text-align:center;">
+                    Unable to create visualization
+                </div>`;
+            }
+        }
+    } catch (error) {
+        console.error("Critical error creating heatmap:", error);
+        container.innerHTML = `<div style="color:red;padding:20px;text-align:center;">
+            Error creating visualization:<br>${error.message}
+        </div>`;
+    }
+}
+
+// Modify updateParametersOnly function to consistently handle image rotation
+function updateParametersOnly() {
+    if (!currentResults) return;
+    
+    try {
+        // Get parameter values
+        const kappa1 = parseFloat(kappa1Input.value);
+        const alpha = parseFloat(alphaInput.value);
+        
+        // Special case handling for kappa1 = 1 (homogeneous material)
+        if (Math.abs(kappa1 - 1.0) < 0.001) {
+            // Use the simplified approach for homogeneous materials
+            let image;
+            
+            // Use the appropriate image based on current tab
+            if (currentTab === 'preset') {
+                image = currentResults.image || getImageData(parseInt(msIdInput.value));
+                updateInfoPanel(
+                    { vol_frac: calculateVolumeFraction(image), reuss: 1.0, voigt: 1.0, eig_kappa: [1.0, 1.0] }, 
+                    parseInt(msIdInput.value), kappa1, alpha
+                );
+            } else if (currentTab === 'upload') {
+                image = currentResults.image;
+                updateInfoPanel(
+                    { vol_frac: calculateVolumeFraction(image), reuss: 1.0, voigt: 1.0, eig_kappa: [1.0, 1.0] }, 
+                    'Uploaded Image', kappa1, alpha
+                );
+            } else if (currentTab === 'draw') {
+                image = currentResults.image;
+                updateInfoPanel(
+                    { vol_frac: calculateVolumeFraction(image), reuss: 1.0, voigt: 1.0, eig_kappa: [1.0, 1.0] }, 
+                    'Custom Drawing', kappa1, alpha
+                );
+            }
+            
+            // Create placeholder visualizations
+            createHomogeneousVisualizations(image);
+            return;
+        }
+        
+        // Show loading overlay
+        loadingOverlay.classList.remove('hidden');
+        
+        // Clear any existing fetch operations (to prevent race conditions)
+        if (window.currentFetch) {
+            window.currentFetchAbort.abort();
+        }
+        
+        // Create a new abort controller
+        const controller = new AbortController();
+        const signal = controller.signal;
+        window.currentFetchAbort = controller;
+        
+        // Add a timeout to abort the request if it takes too long
+        const timeoutId = setTimeout(() => {
+            controller.abort();
+            console.log("Request timed out");
+        }, 10000);
+        
+        // Handle each tab type differently with proper error handling
+        const handleTabTypeUpdate = async () => {
+            try {
+                if (currentTab === 'preset') {
+                    // For preset microstructures - use JSON payload
+                    const response = await fetch(API_SIMULATE, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            ms_id: parseInt(msIdInput.value),
+                            kappa1: kappa1,
+                            alpha: alpha
+                        }),
+                        signal
+                    });
+                    
+                    if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(error.detail || 'Failed to update parameters');
+                    }
+                    
+                    const results = await response.json();
+                    return {
+                        results,
+                        title: parseInt(msIdInput.value)
+                    };
+                    
+                } else if (currentTab === 'upload' && uploadedImage) {
+                    // For uploaded images - handle rotation consistently
+                    const rotatedImageData = await getRotatedImageData(uploadedImage, true);
+                    
+                    // Create a blob from the rotated image data
+                    const byteString = atob(rotatedImageData.split(',')[1]);
+                    const mimeType = rotatedImageData.split(',')[0].split(':')[1].split(';')[0];
+                    const ab = new ArrayBuffer(byteString.length);
+                    const ia = new Uint8Array(ab);
+                    
+                    for (let i = 0; i < byteString.length; i++) {
+                        ia[i] = byteString.charCodeAt(i);
+                    }
+                    
+                    const blob = new Blob([ab], { type: mimeType });
+                    
+                    // Create form data with the rotated image
+                    const formData = new FormData();
+                    formData.append('file', blob, 'uploaded_image.png');
+                    formData.append('kappa1', kappa1);
+                    formData.append('alpha', alpha);
+                    
+                    // Send to API
+                    const response = await fetch(API_UPLOAD, {
+                        method: 'POST',
+                        body: formData,
+                        signal
+                    });
+                    
+                    if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(error.detail || 'Failed to process image');
+                    }
+                    
+                    const results = await response.json();
+                    return {
+                        results,
+                        title: 'Uploaded Image'
+                    };
+                    
+                } else if (currentTab === 'draw') {
+                    // For drawn images - handle rotation consistently
+                    // First, get the current canvas data
+                    const drawingData = canvas.toDataURL('image/png');
+                    
+                    // Apply rotation correction
+                    const rotatedDrawingData = await getRotatedImageData(drawingData, true);
+                    
+                    // Create form data with the rotated drawing
+                    const formData = new FormData();
+                    formData.append('drawing', rotatedDrawingData);
+                    formData.append('kappa1', kappa1);
+                    formData.append('alpha', alpha);
+                    
+                    // Send to API
+                    const response = await fetch(API_DRAWING, {
+                        method: 'POST',
+                        body: formData,
+                        signal
+                    });
+                    
+                    if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(error.detail || 'Failed to process drawing');
+                    }
+                    
+                    const results = await response.json();
+                    return {
+                        results,
+                        title: 'Custom Drawing'
+                    };
+                } else {
+                    // Fallback to preset if we can't determine the source
+                    throw new Error('No valid microstructure source selected');
+                }
+            } catch (error) {
+                // Re-throw to be caught by the outer try/catch
+                throw error;
+            }
+        };
+        
+        // Execute the appropriate handler based on tab type
+        window.currentFetch = handleTabTypeUpdate()
+            .then(({ results, title }) => {
+                clearTimeout(timeoutId);
+                
+                // Clear the reference to the current fetch
+                window.currentFetch = null;
+                
+                // Store the updated results
+                currentResults = results;
+                
+                // Update info panel
+                updateInfoPanel(results, title, kappa1, alpha);
+                
+                // Update visualizations
+                createVisualizations(results);
+            })
+            .catch(error => {
+                clearTimeout(timeoutId);
+                
+                // Only report errors that aren't due to aborted requests
+                if (error.name !== 'AbortError') {
+                    console.error('Error updating parameters:', error);
+                    infoPanel.innerHTML = `
+                        <p style="color: red; font-weight: bold;">Error: ${error.message}</p>
+                        <p>Please check that the server is running and accessible.</p>
+                    `;
+                }
+            })
+            .finally(() => {
+                // Hide loading overlay if this is still the most recent request
+                if (!window.currentFetch) {
+                    loadingOverlay.classList.add('hidden');
+                }
+            });
+            
+    } catch (error) {
+        console.error('Error in parameter update:', error);
+        loadingOverlay.classList.add('hidden');
+        infoPanel.innerHTML = `
+            <p style="color: red; font-weight: bold;">Error: ${error.message}</p>
+            <p>Please check your connection and try again.</p>
+        `;
+    }
+}
+
+// Update info panel with results
+function updateInfoPanel(results, msId, kappa1, alpha) {
+    // Special case for kappa1 = 1 (homogeneous material)
+    if (Math.abs(kappa1 - 1.0) < 0.0001) { // Use a small epsilon for floating point comparison
+        let infoHTML = `
+            <div class="info-grid">
+                <div class="info-item"><strong>Microstructure:</strong> ${typeof msId === 'number' ? `ID ${msId}` : msId}</div>
+                <div class="info-item"><strong>Volume Fraction:</strong> ${results?.vol_frac ? results.vol_frac.toFixed(3) : 'N/A'}</div>
+                <div class="info-item"><strong>κ₁:</strong> ${kappa1.toFixed(3)} W/m² (Homogeneous material)</div>
+                <div class="info-item"><strong>α:</strong> ${alpha.toFixed(1)}°</div>
+                <div class="info-item"><strong>Effective Thermal Conductivity Tensor:</strong> [1.0, 1.0]</div>
+            </div>`;
+        infoPanel.innerHTML = infoHTML;
+        return;
+    }
+    
+    // Regular case - format the effective thermal conductivity tensor instead of eigenvalues
+    let effectiveTensor = results.eig_kappa || [0, 0];
+    
+    // Check if eigenvalues comply with Voigt and Reuss bounds
+    let complianceNote = "";
+    if (results.reuss && results.voigt && 
+        effectiveTensor[0] >= results.reuss && 
+        effectiveTensor[0] <= results.voigt && 
+        effectiveTensor[1] >= results.reuss && 
+        effectiveTensor[1] <= results.voigt) {
+        complianceNote = " <span style='color:green;'>(Complying with Voigt and Reuss bounds)</span>";
+    }
+    
+    let infoHTML = `
+        <div class="info-grid">
+            <div class="info-item"><strong>Microstructure:</strong> ${typeof msId === 'number' ? `ID ${msId}` : msId}</div>
+            <div class="info-item"><strong>Volume Fraction:</strong> ${results.vol_frac.toFixed(3)}</div>
+            <div class="info-item"><strong>κ₁:</strong> ${kappa1.toFixed(3)} W/m²</div>
+            <div class="info-item"><strong>α:</strong> ${alpha.toFixed(1)}°</div>
+            <div class="info-item"><strong>Reuss Bound:</strong> ${results.reuss.toFixed(4)}</div>
+            <div class="info-item"><strong>Voigt Bound:</strong> ${results.voigt.toFixed(4)}</div>
+            <div class="info-item"><strong>Effective Thermal Conductivity Tensor:</strong> [${effectiveTensor[0].toFixed(4)}, ${effectiveTensor[1].toFixed(4)}]${complianceNote}</div>
+    `;
+    
+    // Add surrogate results if available
+    if (results.surrogate_results) {
+        infoHTML += `
+            <div class="info-item"><strong>Predicted Effective Tensor:</strong> [${results.surrogate_results.eig_pred[0].toFixed(4)}, ${results.surrogate_results.eig_pred[1].toFixed(4)}]</div>
+        `;
+    }
+    
+    infoHTML += `</div>`;
+    infoPanel.innerHTML = infoHTML;
+}
+
+// Modified createVisualizations function to use custom ranges for each flux plot
+function createVisualizations(results) {
+    // Fixed temperature scales from -0.08 to 0.08 with 0.02 increments
+    const tempTicks = [-0.08, -0.06, -0.04, -0.02, 0, 0.02, 0.04, 0.06, 0.08];
+    
+    // Custom flux scales for each load case
+    const flux0Ticks = [0, 0.3, 0.6, 0.9, 1.2, 1.5, 1.8]; // 0-1.8 for case 1
+    const flux1Ticks = [0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0]; // 0-3.0 for case 2
+    
+    // Set options for temperature plots
+    const tempOptions = {
+        colorbar: {
+            tickvals: tempTicks,
+            ticktext: tempTicks.map(val => val.toFixed(2)),
+            tickmode: 'array'
+        }
+    };
+    
+    // Set options for flux plot 1 (0-1.8 range)
+    const flux0Options = {
+        colorbar: {
+            tickvals: flux0Ticks,
+            ticktext: flux0Ticks.map(val => val.toFixed(1)),
+            tickmode: 'array'
+        },
+        // Set explicit min and max for the color scale
+        zmin: 0,
+        zmax: 1.8
+    };
+    
+    // Set options for flux plot 2 (0-3.0 range)
+    const flux1Options = {
+        colorbar: {
+            tickvals: flux1Ticks,
+            ticktext: flux1Ticks.map(val => val.toFixed(1)),
+            tickmode: 'array'
+        },
+        // Set explicit min and max for the color scale
+        zmin: 0,
+        zmax: 3.0
+    };
+    
+    // Create visualizations
+    createHeatmap(microPlot, results.image, 'Microstructure', 'Viridis');
+    createHeatmap(paramFieldPlot, results.param_field, 'Thermal Conductivity Field', 'Viridis');
+    createHeatmap(temp0Plot, results.temp0, 'Temperature Fluctuation (Load Case 1)', 'Jet', tempOptions);
+    createHeatmap(temp1Plot, results.temp1, 'Temperature Fluctuation (Load Case 2)', 'Jet', tempOptions);
+    createHeatmap(flux0Plot, results.flux_norm0, 'Heat Flux Magnitude (Load Case 1)', 'Jet', flux0Options);
+    createHeatmap(flux1Plot, results.flux_norm1, 'Heat Flux Magnitude (Load Case 2)', 'Jet', flux1Options);
+}
+
+// Run simulation and update visualizations
+async function runSimulation() {
+    // Show loading overlay
+    loadingOverlay.classList.remove('hidden');
+    
+    try {
+        // Get parameter values
+        const msId = parseInt(msIdInput.value);
+        const kappa1 = parseFloat(kappa1Input.value);
+        const alpha = parseFloat(alphaInput.value);
+        
+        // Validate microstructure ID
+        if (msId < 0 || msId > maxSampleId) {
+            throw new Error(`Microstructure ID must be between 0 and ${maxSampleId}`);
+        }
+        
+        // Special case handling for kappa1 = 1 (homogeneous material)
+        if (Math.abs(kappa1 - 1.0) < 0.001) {
+            // Create a simplified response for homogeneous material
+            const image = await getImageData(msId);
+            
+            // Calculate volume fraction for the info panel
+            const volFrac = calculateVolumeFraction(image);
+            
+            // Create placeholder visualizations for homogeneous material
+            createHomogeneousVisualizations(image);
+            
+            // Update info panel with homogeneous material info
+            updateInfoPanel({ vol_frac: volFrac, reuss: 1.0, voigt: 1.0, eig_kappa: [1.0, 1.0] }, msId, kappa1, alpha);
+            
+            // Hide loading overlay
+            loadingOverlay.classList.add('hidden');
+            return;
+        }
+        
+        // Create a timeout handler
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000);
+        
+        // Call API with timeout
+        try {
+            const response = await fetch(API_SIMULATE, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    ms_id: msId,
+                    kappa1: kappa1,
+                    alpha: alpha
+                }),
+                signal: controller.signal
+            });
+            
+            clearTimeout(timeoutId);
+            
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.detail || 'Failed to run simulation');
+            }
+            
+            const results = await response.json();
+            
+            // Store the results
+            currentResults = results;
+            
+            // Update info panel
+            updateInfoPanel(results, msId, kappa1, alpha);
+            
+            // Create visualizations
+            createVisualizations(results);
+            
+        } catch (error) {
+            if (error.name === 'AbortError') {
+                throw new Error('Request timed out. The server may be busy or unavailable.');
+            } else {
+                throw error;
+            }
+        }
+        
+    } catch (error) {
+        console.error('Error running simulation:', error);
+        infoPanel.innerHTML = `
+            <p style="color: red; font-weight: bold;">Error: ${error.message}</p>
+            <p>Server address: ${window.location.origin}${API_SIMULATE}</p>
+            <p>If this error persists, check that the server is running and accessible.</p>
+        `;
+    } finally {
+        // Hide loading overlay
+        loadingOverlay.classList.add('hidden');
+    }
+} 
+
+async function getImageData(msId) {
+    // Try to get from current results if available
+    if (currentResults && currentResults.image) {
+        return currentResults.image;
+    }
+    
+    // Otherwise, use a default uniform grid
+    const gridSize = 400;
+    const image = [];
+    for (let i = 0; i < gridSize; i++) {
+        const row = [];
+        for (let j = 0; j < gridSize; j++) {
+            // Create a simple checkerboard pattern
+            row.push((i + j) % 16 < 8 ? 1 : 0);
+        }
+        image.push(row);
+    }
+    return image;
+}
+
+function calculateVolumeFraction(image) {
+    if (!image || !image.length) return 0.5;
+    
+    let sum = 0;
+    let count = 0;
+    
+    for (let i = 0; i < image.length; i++) {
+        for (let j = 0; j < image[i].length; j++) {
+            sum += image[i][j];
+            count++;
+        }
+    }
+    
+    return count > 0 ? sum / count : 0.5;
+}
+
+function createHomogeneousVisualizations(image) {
+    // Store image in currentResults
+    if (!currentResults) {
+        currentResults = {};
+    }
+    currentResults.image = image;
+    
+    // Create a uniform field for parameters (all 1's)
+    const paramField = [];
+    for (let i = 0; i < image.length; i++) {
+        const row = [];
+        for (let j = 0; j < image[0].length; j++) {
+            row.push(1.0);
+        }
+        paramField.push(row);
+    }
+    
+    // Create uniform fields for temperatures (all zeros for fluctuations)
+    const tempField = [];
+    for (let i = 0; i < image.length; i++) {
+        const row = [];
+        for (let j = 0; j < image[0].length; j++) {
+            row.push(0.0);
+        }
+        tempField.push(row);
+    }
+    
+    // Create uniform fields for flux (all 1's for constant heat flow)
+    const fluxField = [];
+    for (let i = 0; i < image.length; i++) {
+        const row = [];
+        for (let j = 0; j < image[0].length; j++) {
+            row.push(1.0);
+        }
+        fluxField.push(row);
+    }
+    
+    // Set options for flux plots with custom ranges
+    const flux0Options = {
+        colorbar: {
+            tickvals: [0, 0.3, 0.6, 0.9, 1.2, 1.5, 1.8],
+            ticktext: [0, 0.3, 0.6, 0.9, 1.2, 1.5, 1.8].map(val => val.toFixed(1)),
+            tickmode: 'array'
+        },
+        zmin: 0,
+        zmax: 1.8
+    };
+    
+    const flux1Options = {
+        colorbar: {
+            tickvals: [0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0],
+            ticktext: [0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0].map(val => val.toFixed(1)),
+            tickmode: 'array'
+        },
+        zmin: 0,
+        zmax: 3.0
+    };
+    
+    // Create visualizations with special labels for homogeneous case
+    createHeatmap(microPlot, image, 'Microstructure', 'Viridis');
+    createHeatmap(paramFieldPlot, paramField, 'Thermal Conductivity Field (Homogeneous κ=1)', 'Viridis');
+    createHeatmap(temp0Plot, tempField, 'Temperature Fluctuation (Load Case 1, Homogeneous)', 'Jet');
+    createHeatmap(temp1Plot, tempField, 'Temperature Fluctuation (Load Case 2, Homogeneous)', 'Jet');
+    createHeatmap(flux0Plot, fluxField, 'Heat Flux Magnitude (Load Case 1, Homogeneous)', 'Jet', flux0Options);
+    createHeatmap(flux1Plot, fluxField, 'Heat Flux Magnitude (Load Case 2, Homogeneous)', 'Jet', flux1Options);
+    
+    // Update currentResults with generated fields
+    currentResults.param_field = paramField;
+    currentResults.temp0 = tempField;
+    currentResults.temp1 = tempField;
+    currentResults.flux_norm0 = fluxField;
+    currentResults.flux_norm1 = fluxField;
+    currentResults.vol_frac = calculateVolumeFraction(image);
+    currentResults.reuss = 1.0;
+    currentResults.voigt = 1.0;
+    currentResults.eig_kappa = [1.0, 1.0];
+}
+
+// Update processDrawing to handle rotation consistency
+async function processDrawing() {
+    if (!canvas) return;
+    
+    // Show loading overlay
+    loadingOverlay.classList.remove('hidden');
+    
+    try {
+        // Get drawing data
+        const drawingData = canvas.toDataURL('image/png');
+        
+        // Apply rotation correction using our helper function
+        const rotatedDrawingData = await getRotatedImageData(drawingData, true);
+        
+        // Get parameters
+        const kappa1 = parseFloat(kappa1Input.value);
+        const alpha = parseFloat(alphaInput.value);
+        
+        // Special case handling for kappa1 = 1 (homogeneous material)
+        if (Math.abs(kappa1 - 1.0) < 0.001) {
+            // Create a temporary canvas to process the rotated drawing
+            const tempCanvas = document.createElement('canvas');
+            const tempCtx = tempCanvas.getContext('2d');
+            
+            // Set up the canvas
+            const img = new Image();
+            await new Promise((resolve, reject) => {
+                img.onload = resolve;
+                img.onerror = reject;
+                img.src = rotatedDrawingData;
+            });
+            
+            tempCanvas.width = img.width;
+            tempCanvas.height = img.height;
+            tempCtx.drawImage(img, 0, 0);
+            
+            // Convert to binary data
+            const drawingBinary = await convertCanvasToArray(tempCanvas);
+            
+            // Create homogeneous visualizations
+            createHomogeneousVisualizations(drawingBinary);
+            
+            // Update info panel
+            updateInfoPanel({ 
+                vol_frac: calculateVolumeFraction(drawingBinary), 
+                reuss: 1.0, 
+                voigt: 1.0, 
+                eig_kappa: [1.0, 1.0] 
+            }, 'Custom Drawing', kappa1, alpha);
+            
+            // Hide loading overlay
+            loadingOverlay.classList.add('hidden');
+            return;
+        }
+        
+        // Create form data with the rotated drawing
+        const formData = new FormData();
+        formData.append('drawing', rotatedDrawingData);
+        formData.append('kappa1', kappa1);
+        formData.append('alpha', alpha);
+        
+        // Send to API
+        const response = await fetch(API_DRAWING, {
+            method: 'POST',
+            body: formData
+        });
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Failed to process drawing');
+        }
+        
+        const results = await response.json();
+        
+        // Store the results
+        currentResults = results;
+        
+        // Update info panel
+        updateInfoPanel(results, 'Custom Drawing', kappa1, alpha);
+        
+        // Create visualizations
+        createVisualizations(results);
+        
+    } catch (error) {
+        console.error('Error processing drawing:', error);
+        infoPanel.innerHTML = `<p style="color: red; font-weight: bold;">Error: ${error.message}</p>`;
+    } finally {
+        // Hide loading overlay
+        loadingOverlay.classList.add('hidden');
+    }
+}
+
+async function convertCanvasToArray(canvas) {
+    const ctx = canvas.getContext('2d');
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
+    const result = [];
+    
+    // Create binary array from image data
+    for (let y = 0; y < canvas.height; y++) {
+        const row = [];
+        for (let x = 0; x < canvas.width; x++) {
+            const idx = (y * canvas.width + x) * 4;
+            // Check if pixel is white (RGB values all above 128)
+            const isWhite = data[idx] > 128 && data[idx + 1] > 128 && data[idx + 2] > 128;
+            row.push(isWhite ? 1 : 0);
+        }
+        result.push(row);
+    }
+    
+    return result;
+}
+
+function resetPlot(plotId) {
+    console.log('Resetting plot:', plotId);
+    const plotElement = document.getElementById(plotId);
+    if (plotElement && plotElement.layout) {
+        Plotly.relayout(plotElement, {
+            'xaxis.autorange': true,
+            'yaxis.autorange': true
+        });
+        
+        // Reset colorbar ticks to original range
+        if (plotId.includes('temp')) {
+            // Fixed temperature scales from -0.08 to 0.08 with 0.02 increments
+            const tempTicks = [-0.08, -0.06, -0.04, -0.02, 0, 0.02, 0.04, 0.06, 0.08];
+            Plotly.relayout(plotElement, {
+                'coloraxis.colorbar.tickvals': tempTicks,
+                'coloraxis.colorbar.ticktext': tempTicks.map(val => val.toFixed(2))
+            });
+        } else if (plotId.includes('flux')) {
+            // Fixed flux scales from 0.4 to 1.4 with 0.2 increments
+            const fluxTicks = [0.4, 0.6, 0.8, 1.0, 1.2, 1.4];
+            Plotly.relayout(plotElement, {
+                'coloraxis.colorbar.tickvals': fluxTicks,
+                'coloraxis.colorbar.ticktext': fluxTicks.map(val => val.toFixed(1))
+            });
+        }
+    }
+}
+
+function downloadPlot(plotId) {
+    console.log('Downloading plot:', plotId);
+    const plotElement = document.getElementById(plotId);
+    if (plotElement) {
+        Plotly.downloadImage(plotElement, {
+            format: 'png',
+            filename: plotId,
+            height: 800,
+            width: 800
+        });
+    }
+}
+
+// Toggle between different display modes (e.g., heatmap vs. contour) - IMPROVED VERSION
+let plotModes = {};  // Store current mode for each plot
+
+// toggleDisplayMode to preserve zmin and zmax when switching display modes
+function toggleDisplayMode(plotId) {
+    console.log('Toggling display mode for plot:', plotId);
+    const plotElement = document.getElementById(plotId);
+    if (!plotElement || !plotElement.data || !plotElement.data[0]) {
+        console.error('Plot element or data not found:', plotId);
+        return;
+    }
+    
+    try {
+        // Get current mode or default to 'heatmap'
+        plotModes[plotId] = plotModes[plotId] || 'heatmap';
+        
+        // Get current data
+        const currentData = plotElement.data[0].z;
+        const currentTitle = plotElement.layout.title.text;
+        const colorscale = plotElement.data[0].colorscale || 'Jet';
+        
+        // Get layout settings to preserve
+        const currentLayout = plotElement.layout;
+        
+        // Capture dimensions to preserve
+        const width = currentLayout.width || plotElement.clientWidth;
+        const height = currentLayout.height || plotElement.clientHeight;
+        
+        // Preserve the last zoom state if it exists
+        const lastZoomState = plotElement._lastZoomState;
+        
+        // Get custom zmin/zmax if they exist
+        const zmin = plotElement.data[0].zmin;
+        const zmax = plotElement.data[0].zmax;
+        
+        // Purge the plot before recreating to avoid memory issues
+        Plotly.purge(plotElement);
+        
+        if (plotModes[plotId] === 'heatmap') {
+            // Switch to contour
+            console.log('Switching to contour mode');
+            plotModes[plotId] = 'contour';
+            
+            const newTrace = {
+                z: currentData,
+                type: 'contour',
+                colorscale: colorscale,
+                showscale: true,
+                contours: {
+                    coloring: 'heatmap'
+                }
+            };
+            
+            // Preserve zmin/zmax if they exist
+            if (zmin !== undefined) newTrace.zmin = zmin;
+            if (zmax !== undefined) newTrace.zmax = zmax;
+            
+            // Preserve coloraxis settings and dimensions
+            const newLayout = {
+                ...currentLayout,
+                title: { text: currentTitle, font: { size: 16 } },
+                width: width,
+                height: height,
+                autosize: false
+            };
+            
+            // Create new plot with error handling - use the same efficient zoom handler
+            try {
+                Plotly.newPlot(plotElement, [newTrace], newLayout, {
+                    responsive: true,
+                    displayModeBar: false,
+                    scrollZoom: false
+                });
+                
+                // Restore last zoom state
+                plotElement._lastZoomState = lastZoomState;
+                
+                // Set up the same efficient zoom handlers as in createHeatmap
+                setupEfficientZoomHandlers(plotElement);
+            } catch (e) {
+                console.error("Error creating contour plot:", e);
+                // Revert the mode if failed
+                plotModes[plotId] = 'heatmap';
+            }
+        } else {
+            // Switch back to heatmap
+            console.log('Switching to heatmap mode');
+            plotModes[plotId] = 'heatmap';
+            
+            const newTrace = {
+                z: currentData,
+                type: 'heatmap',
+                colorscale: colorscale,
+                showscale: true
+            };
+            
+            // Preserve zmin/zmax if they exist
+            if (zmin !== undefined) newTrace.zmin = zmin;
+            if (zmax !== undefined) newTrace.zmax = zmax;
+            
+            // Preserve coloraxis settings and dimensions
+            const newLayout = {
+                ...currentLayout,
+                title: { text: currentTitle, font: { size: 16 } },
+                width: width,
+                height: height,
+                autosize: false
+            };
+            
+            // Create new plot with error handling - use the same efficient zoom handler
+            try {
+                Plotly.newPlot(plotElement, [newTrace], newLayout, {
+                    responsive: true,
+                    displayModeBar: false,
+                    scrollZoom: false
+                });
+                
+                // Restore last zoom state
+                plotElement._lastZoomState = lastZoomState;
+                
+                // Set up the same efficient zoom handlers as in createHeatmap
+                setupEfficientZoomHandlers(plotElement);
+            } catch (e) {
+                console.error("Error creating heatmap plot:", e);
+                // Revert the mode if failed
+                plotModes[plotId] = 'contour';
+            }
+        }
+    } catch (error) {
+        console.error("Error toggling plot mode:", error);
+    }
+}
+
+// Handle image upload
+let uploadedImage = null;
+
+// Enable the Process button when an image is selected
+imageUpload.addEventListener('change', function(e) {
+    if (this.files && this.files[0]) {
+        processUploadBtn.disabled = false;
+    } else {
+        processUploadBtn.disabled = true;
+    }
+});
+
+// Update processUploadBtn to handle rotation consistency
+processUploadBtn.addEventListener('click', function() {
+    if (imageUpload.files && imageUpload.files[0]) {
+        // Show loading overlay
+        loadingOverlay.classList.remove('hidden');
+        
+        const file = imageUpload.files[0];
+        uploadedImage = file; // Store the file for later use
+        
+        // Use the helper function to handle rotation
+        getRotatedImageData(file, true)
+            .then(rotatedImageData => {
+                // Convert the rotated base64 image to a blob
+                const byteString = atob(rotatedImageData.split(',')[1]);
+                const mimeType = rotatedImageData.split(',')[0].split(':')[1].split(';')[0];
+                const ab = new ArrayBuffer(byteString.length);
+                const ia = new Uint8Array(ab);
+                
+                for (let i = 0; i < byteString.length; i++) {
+                    ia[i] = byteString.charCodeAt(i);
+                }
+                
+                const blob = new Blob([ab], { type: mimeType });
+                
+                // Create form data with the rotated image
+                const formData = new FormData();
+                formData.append('file', blob, file.name);
+                formData.append('kappa1', parseFloat(kappa1Input.value));
+                formData.append('alpha', parseFloat(alphaInput.value));
+                
+                // Upload the processed image
+                return fetch(API_UPLOAD, {
+                    method: 'POST',
+                    body: formData
+                });
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(error => {
+                        throw new Error(error.detail || 'Failed to process image');
+                    });
+                }
+                return response.json();
+            })
+            .then(results => {
+                // Store the results
+                currentResults = results;
+                
+                // Update info panel with custom message
+                updateInfoPanel(results, 'Uploaded Image', parseFloat(kappa1Input.value), parseFloat(alphaInput.value));
+                
+                // Create visualizations
+                createVisualizations(results);
+            })
+            .catch(error => {
+                console.error('Error processing uploaded image:', error);
+                infoPanel.innerHTML = `<p style="color: red; font-weight: bold;">Error: ${error.message}</p>`;
+            })
+            .finally(() => {
+                // Hide loading overlay
+                loadingOverlay.classList.add('hidden');
+            });
+    }
+});
+
+// Process the drawn microstructure
+processDrawingBtn.addEventListener('click', function() {
+    processDrawing();
+});
+
+// Debounced version of parameter update
+const debouncedUpdateParameters = debounce(updateParametersOnly, 300);
+
+// Update displayed values for sliders and update visualization
+kappa1Input.addEventListener('input', () => {
+    // Just update the displayed value immediately
+    const kappa1 = parseFloat(kappa1Input.value);
+    const kappa1ValueElem = document.getElementById('kappa1-value');
+    
+    // Add warning if kappa1 is exactly 1 or very close to 1
+    if (Math.abs(kappa1 - 1.0) < 0.001) {
+        kappa1ValueElem.innerHTML = `${kappa1.toFixed(2)} <span style="color:#e74c3c">(homogeneous material)</span>`;
+    } else if (Math.abs(kappa1 - 1.0) < 0.05) {
+        kappa1ValueElem.innerHTML = `${kappa1.toFixed(2)} <span style="color:orange">(near homogeneous)</span>`;
+    } else {
+        kappa1ValueElem.textContent = kappa1.toFixed(2);
+    }
+});
+
+// Update on slider release rather than continuous input
+kappa1Input.addEventListener('change', () => {
+    // Update visualization when slider is released if we have current results
+    if (currentResults) {
+        debouncedUpdateParameters();
+    }
+});
+
+alphaInput.addEventListener('input', () => {
+    // Just update the displayed value immediately
+    alphaValue.textContent = alphaInput.value + '°';
+});
+
+// Update on slider release rather than continuous input
+alphaInput.addEventListener('change', () => {
+    // Update visualization when slider is released if we have current results
+    if (currentResults) {
+        debouncedUpdateParameters();
+    }
+});
+
+// Add event listeners for all plot buttons and initialize app
+document.addEventListener('DOMContentLoaded', function() {
+    // Add event listeners to all buttons
+    document.querySelectorAll('.plot-button').forEach(button => {
+        button.addEventListener('click', function(e) {
+            const plotId = this.getAttribute('data-plot-id');
+            const action = this.getAttribute('data-action');
+            
+            if (action === 'reset') {
+                resetPlot(plotId);
+            } else if (action === 'download') {
+                downloadPlot(plotId);
+            } else if (action === 'toggle') {
+                toggleDisplayMode(plotId);
+            }
+        });
+    });
+
+    // Ensure all shape tools reset to normal drawing mode after use
+    document.querySelectorAll('.shape-tool').forEach(button => {
+        if (button.id !== 'draw-line') { // Skip line tool which has special handling
+            button.addEventListener('click', function() {
+                // If we're in a special drawing mode, clean it up first
+                if (currentDrawingMode) {
+                    currentDrawingMode();
+                    currentDrawingMode = null;
+                }
+                
+                // Reset back to the active drawing tool after shape is drawn
+                setTimeout(() => {
+                    if (drawColor === '#FFFFFF') {
+                        setActiveDrawingTool(drawWhiteBtn);
+                    } else {
+                        setActiveDrawingTool(drawBlackBtn);
+                    }
+                }, 100);
+            });
+        }
+    });
+
+    // Add the upload size restriction notice
+    const uploadInfo = document.querySelector('.upload-info');
+    if (uploadInfo) {
+        uploadInfo.innerHTML = `
+            <small>Supported formats: PNG, JPEG, GIF. Images will be processed as binary (black/white) microstructures, where white represents the conductive phase. <strong>Images will be restricted to 400x400px - larger images will be cropped to the top-left corner.</strong></small>
+        `;
+    }
+    
+    // Add event listener for the Load Microstructure button
+    //updateBtn.addEventListener('click', runSimulation);
+
+// function ensureCaptchaVerified() {
+//     return new Promise((resolve) => {
+//         if (!shouldShowCaptcha()) {
+//             resolve();
+//             return;
+//         }
+//         // Show modal and hook up the submit button
+//         document.getElementById('captcha-modal').style.display = 'flex';
+//         loadCaptcha();
+
+//         // Temporarily override the submit handler
+//         const submitBtn = document.getElementById('captcha-submit');
+//         const origHandler = submitBtn.onclick;
+//         submitBtn.onclick = function() {
+//             const val = document.getElementById('captcha-input').value.trim();
+//             if(val.length !== 6) {
+//                 document.getElementById('captcha-error').textContent = "Please enter the 6-character code.";
+//                 document.getElementById('captcha-error').style.display = 'block';
+//                 return;
+//             }
+//             fetch('/api/verify-captcha', {
+//                 method: 'POST',
+//                 headers: {'Content-Type': 'application/json'},
+//                 body: JSON.stringify({
+//                     captcha_id: captchaId,
+//                     captcha_code: val
+//                 })
+//             })
+//             .then(r => r.json())
+//             .then(data => {
+//                 if(data.success) {
+//                     document.getElementById('captcha-modal').style.display = 'none';
+//                     localStorage.setItem('captchaVerified', Date.now().toString());
+//                     submitBtn.onclick = origHandler; // restore original handler
+//                     resolve();
+//                 } else {
+//                     document.getElementById('captcha-error').textContent = data.error || "Incorrect CAPTCHA.";
+//                     document.getElementById('captcha-error').style.display = 'block';
+//                     loadCaptcha();
+//                 }
+//             })
+//             .catch(() => {
+//                 document.getElementById('captcha-error').textContent = "Server error. Please try again.";
+//                 document.getElementById('captcha-error').style.display = 'block';
+//                 loadCaptcha();
+//             });
+//         };
+//     });
+// }
+function ensureCaptchaVerified(context = "page") {
+    return new Promise((resolve) => {
+        if (!shouldShowCaptcha()) {
+            resolve();
+            return;
+        }
+        document.getElementById('captcha-modal').style.display = 'flex';
+        loadCaptcha();
+
+        const submitBtn = document.getElementById('captcha-submit');
+        const origHandler = submitBtn.onclick;
+        submitBtn.onclick = function() {
+            const val = document.getElementById('captcha-input').value.trim();
+            if (val.length !== 6) {
+                document.getElementById('captcha-error').textContent = "Please enter the 6-character code.";
+                document.getElementById('captcha-error').style.display = 'block';
+                return;
+            }
+            fetch('/api/verify-captcha', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    captcha_id: captchaId,
+                    captcha_code: val
+                })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('captcha-modal').style.display = 'none';
+                    submitBtn.onclick = origHandler; // Restore original handler
+                    
+                    // Increase the delay to ensure cookie is properly set
+                    setTimeout(resolve, 500); // <-- Increase from 150ms to 500ms
+                } else {
+                    document.getElementById('captcha-error').textContent = data.error || "Incorrect CAPTCHA.";
+                    document.getElementById('captcha-error').style.display = 'block';
+                    loadCaptcha();
+                }
+            })
+            .catch(() => {
+                document.getElementById('captcha-error').textContent = "Server error. Please try again.";
+                document.getElementById('captcha-error').style.display = 'block';
+                loadCaptcha();
+            });
+        };
+    });
+}
+
+
+// Wrap the simulation call
+// async function runSimulationWithCaptcha() {
+//     await ensureCaptchaVerified();
+//     runSimulation();
+// }
+async function runSimulationWithCaptcha() {
+    await ensureCaptchaVerified("simulation");
+    runSimulation();
+}
+
+// ...inside your DOMContentLoaded or main init code:
+updateBtn.removeEventListener('click', runSimulation); // Remove old if present
+updateBtn.addEventListener('click', runSimulationWithCaptcha);
+    
+    // Initialize the application
+    //initApp();
+    
+    // Initialize drawing tools
+    if (canvas) {
+        initializeDrawingTools();
+    }
+    
+    // Initialize collapsible sections - on mobile, start with most collapsed
+    const sections = document.querySelectorAll('.toolbar-content');
+    if (window.innerWidth < 768) {
+        // On mobile, collapse all but first section
+        sections.forEach((content, index) => {
+            if (index > 0) {
+                content.classList.add('collapsed');
+                content.style.maxHeight = '0px';
+                
+                // Update the toggle icon
+                const icon = content.previousElementSibling.querySelector('.toggle-icon');
+                if (icon) {
+                    icon.style.transform = 'rotate(-90deg)';
+                }
+            } else {
+                // Expand first section
+                content.classList.remove('collapsed');
+                content.style.maxHeight = content.scrollHeight + 'px';
+            }
+        });
+    } else {
+        // On desktop, start with all sections expanded
+        sections.forEach(content => {
+            content.classList.remove('collapsed');
+            content.style.maxHeight = content.scrollHeight + 'px';
+        });
+    }
+    
+    // Fix drawing canvas size for mobile
+    fixDrawingCanvasSize();
+    
+    // Fix microstructure plot size
+    fixMicrostructurePlotSize();
+});
+
+// Enhanced function to fix microstructure plot size
+function fixMicrostructurePlotSize() {
+    const microPlot = document.getElementById('microstructure-plot');
+    if (!microPlot) return;
+    
+    // For all other plots, ensure responsive behavior
+    const allPlots = document.querySelectorAll('.plot');
+    allPlots.forEach(plot => {
+        if (plot.id !== 'microstructure-plot') {
+            plot.style.width = '100%';
+            plot.style.height = '0';
+            plot.style.paddingBottom = '100%';
+            plot.style.position = 'relative';
+        }
+    });
+    
+    // Check if Plotly has initialized this plot
+    const hasPlotlyInitialized = microPlot.data && microPlot.data[0] && microPlot.layout;
+    
+    if (window.innerWidth < 768) {
+        // Mobile view - use responsive sizing
+        microPlot.style.width = '100%';
+        microPlot.style.maxWidth = '300px';
+        microPlot.style.height = '0';
+        microPlot.style.paddingBottom = '100%';
+        microPlot.style.margin = '0 auto 80px';
+        
+        // If Plotly is initialized, update layout
+        if (hasPlotlyInitialized) {
+            try {
+                Plotly.relayout(microPlot, {
+                    'autosize': true,
+                    'width': null,
+                    'height': null
+                });
+            } catch (e) {
+                console.error("Error updating plot layout:", e);
+            }
+        }
+    } else {
+        // Desktop view - use fixed sizing
+        microPlot.style.width = '300px';
+        microPlot.style.height = '300px';
+        microPlot.style.paddingBottom = '';
+        microPlot.style.margin = '0 auto 80px';
+        
+        // If Plotly is initialized, update layout with fixed dimensions
+        if (hasPlotlyInitialized) {
+            try {
+                Plotly.relayout(microPlot, {
+                    'autosize': false,
+                    'width': 300,
+                    'height': 300
+                });
+            } catch (e) {
+                console.error("Error updating plot layout:", e);
+            }
+        }
+    }
+}
+
+// Fix drawing canvas size on mobile
+function fixDrawingCanvasSize() {
+    const drawingCanvas = document.getElementById('drawing-canvas');
+    const container = document.getElementById('drawing-canvas-container');
+    
+    if (!drawingCanvas || !container) return;
+    
+    // Make container responsive
+    container.style.width = '100%';
+    container.style.maxWidth = '400px';
+    container.style.height = 'auto';
+    container.style.aspectRatio = '1/1';
+    container.style.margin = '0 auto';
+    
+    // Calculate size based on container's computed style
+    const containerStyles = window.getComputedStyle(container);
+    const containerWidth = parseInt(containerStyles.width, 10);
+    
+    // Only resize if we have valid dimensions
+    if (containerWidth > 0) {
+        // Set canvas dimensions
+        drawingCanvas.width = containerWidth;
+        drawingCanvas.height = containerWidth;
+        
+        // Restore current drawing state if available
+        if (canvasHistory.length > 0 && currentHistoryIndex >= 0) {
+            const img = new Image();
+            img.onload = function() {
+                ctx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+                ctx.drawImage(img, 0, 0, drawingCanvas.width, drawingCanvas.height);
+            };
+            img.src = canvasHistory[currentHistoryIndex];
+        } else {
+            // Initialize with black background
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+            saveCanvasState();
+        }
+    }
+}
+
+document.getElementById('process-drawing-btn').addEventListener('click', function() {
+    if (canvas) {
+        processDrawing();
+    } else {
+        console.error("Canvas element not found");
+    }
+});
+
+// Ensure touch events are properly set up
+function initializeCanvasEvents() {
+    if (!canvas) return;
+    
+    // Remove any existing event listeners to prevent duplicates
+    canvas.removeEventListener('mousedown', startDrawing);
+    canvas.removeEventListener('mousemove', draw);
+    canvas.removeEventListener('mouseup', stopDrawing);
+    canvas.removeEventListener('mouseout', stopDrawing);
+    canvas.removeEventListener('touchstart', handleTouchStart);
+    canvas.removeEventListener('touchmove', handleTouchMove);
+    canvas.removeEventListener('touchend', handleTouchEnd);
+    
+    // Add mouse events
+    canvas.addEventListener('mousedown', startDrawing);
+    canvas.addEventListener('mousemove', draw);
+    canvas.addEventListener('mouseup', stopDrawing);
+    canvas.addEventListener('mouseout', stopDrawing);
+    
+    // Add touch events
+    canvas.addEventListener('touchstart', handleTouchStart);
+    canvas.addEventListener('touchmove', handleTouchMove);
+    canvas.addEventListener('touchend', handleTouchEnd);
+}
+
+// Call this function during initialization
+document.addEventListener('DOMContentLoaded', function() {
+    // Existing initialization code...
+    
+    // Initialize canvas events
+    initializeCanvasEvents();
+    
+    // Force canvas resize when the draw tab is shown
+    document.querySelector('.tab[data-tab="draw"]').addEventListener('click', function() {
+        setTimeout(fixDrawingCanvasSize, 100);
+    });
+});
+
+// Fix for the Draw Custom tab initialization
+document.querySelectorAll('.tab').forEach(button => {
+    button.addEventListener('click', () => {
+        const tabId = button.getAttribute('data-tab');
+        
+        // Update active tab button
+        tabButtons.forEach(btn => btn.classList.remove('active'));
+        button.classList.add('active');
+        
+        // Update active tab content
+        tabContents.forEach(content => content.classList.remove('active'));
+        document.getElementById(`${tabId}-tab`).classList.add('active');
+        
+        // Set current tab - this variable is crucial for updateParametersOnly
+        currentTab = tabId;
+        
+        // Important: Handle drawing canvas resizing when switching to draw tab
+        if (tabId === 'draw') {
+            setTimeout(() => {
+                fixDrawingCanvasSize();
+                // Reset drawing canvas if empty
+                if (canvasHistory.length === 0) {
+                    ctx.fillStyle = '#000000';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    saveCanvasState();
+                }
+            }, 50);
+        }
+    });
+});
+
+// Enhanced resize handler that detects view transitions
+let previousViewMode = window.innerWidth < 768 ? 'mobile' : 'desktop';
+
+window.addEventListener('resize', debounce(() => {
+    // Detect view transition
+    const currentViewMode = window.innerWidth < 768 ? 'mobile' : 'desktop';
+    const hasViewChanged = previousViewMode !== currentViewMode;
+    
+    // Store current view for next comparison
+    previousViewMode = currentViewMode;
+    
+    // Get microstructure plot element
+    const microPlot = document.getElementById('microstructure-plot');
+    
+    if (currentResults) {
+        // Special handling for microstructure plot when transitioning from mobile to desktop
+        if (hasViewChanged && currentViewMode === 'desktop' && microPlot) {
+            console.log("View changed from mobile to desktop - forcing full microstructure plot redraw");
+            
+            // First apply the correct styling
+            fixMicrostructurePlotSize();
+            
+            // Then force a complete redraw using current data
+            if (currentResults.image) {
+                // Short delay to ensure CSS changes are applied
+                setTimeout(() => {
+                    forceMicrostructurePlotRedraw(currentResults.image);
+                }, 50);
+            }
+        } else {
+            // Normal resize behavior for other cases
+            const plotElements = document.querySelectorAll('.plot');
+            plotElements.forEach(element => {
+                if (element.data && element.data[0] && element.layout) {
+                    try {
+                        Plotly.relayout(element, {
+                            autosize: true
+                        });
+                    } catch (e) {
+                        console.error("Error resizing plot:", e);
+                    }
+                }
+            });
+            
+            // Update microstructure plot size
+            fixMicrostructurePlotSize();
+        }
+    } else {
+        // If no results yet, just update styles
+        fixMicrostructurePlotSize();
+    }
+    
+    // Update drawing canvas size
+    fixDrawingCanvasSize();
+}, 250));
+
+// New function to force a complete redraw of the microstructure plot
+function forceMicrostructurePlotRedraw(imageData) {
+    const microPlot = document.getElementById('microstructure-plot');
+    if (!microPlot || !imageData) return;
+    
+    // Clear current plot
+    Plotly.purge(microPlot);
+    
+    // Ensure container has proper dimensions before redrawing
+    if (window.innerWidth >= 768) {
+        // Desktop view - use fixed size
+        microPlot.style.width = '300px';
+        microPlot.style.height = '300px';
+        microPlot.style.paddingBottom = '';
+    } else {
+        // Mobile view - use responsive size
+        microPlot.style.width = '100%';
+        microPlot.style.maxWidth = '300px';
+        microPlot.style.height = '0';
+        microPlot.style.paddingBottom = '100%';
+    }
+    
+    // Get transposed data
+    let transposedData;
+    try {
+        transposedData = transposeMatrix(imageData);
+    } catch (error) {
+        console.error("Error transposing data:", error);
+        transposedData = imageData;
+    }
+    
+    // Prepare trace
+    const trace = {
+        z: transposedData,
+        type: 'heatmap',
+        colorscale: 'Viridis',
+        showscale: true
+    };
+    
+    // Set up layout 
+    const layout = {
+        title: {
+            text: 'Microstructure',
+            font: { size: window.innerWidth < 768 ? 14 : 16 }
+        },
+        margin: { t: 40, r: 40, b: 30, l: 40 },
+        xaxis: { 
+            showticklabels: false,
+            constrain: 'domain'
+        },
+        yaxis: { 
+            showticklabels: false,
+            scaleanchor: 'x',
+            scaleratio: 1,
+            constrain: 'domain'
+        }
+    };
+    
+    // For desktop, explicitly set width and height
+    if (window.innerWidth >= 768) {
+        layout.width = 300; 
+        layout.height = 300;
+        layout.autosize = false;
+    } else {
+        layout.autosize = true;
+    }
+    
+    // Create new plot
+    Plotly.newPlot(microPlot, [trace], layout, {
+        responsive: true,
+        displayModeBar: false
+    }).then(() => {
+        // Store original dimensions
+        microPlot._origData = {
+            width: transposedData[0].length,
+            height: transposedData.length
+        };
+        
+        // Set up efficient zoom handlers
+        setupEfficientZoomHandlers(microPlot);
+    });
+}
+
+// Script to fix the microstructure plot to be perfectly square
+(function() {
+    // CONFIGURATION - Change size as needed
+    const PLOT_SIZE = 400;
+    
+    // Override createHeatmap only for the microstructure plot
+    const originalCreateHeatmap = window.createHeatmap;
+    
+    window.createHeatmap = function(container, data, title, colorscale = 'Jet', options = {}) {
+        // Only apply special handling to the microstructure plot
+        if (container.id === 'microstructure-plot') {
+            try {
+                // Clear any existing plots
+                Plotly.purge(container);
+                
+                // Transpose data (using the existing function)
+                let transposedData;
+                try {
+                    transposedData = transposeMatrix(data);
+                } catch (error) {
+                    console.error("Error transposing data:", error);
+                    transposedData = data;
+                }
+                
+                // Set up trace
+                const trace = {
+                    z: transposedData,
+                    type: 'heatmap',
+                    colorscale: colorscale,
+                    showscale: true
+                };
+                
+                // Apply custom zmin/zmax if specified
+                if (options.zmin !== undefined) trace.zmin = options.zmin;
+                if (options.zmax !== undefined) trace.zmax = options.zmax;
+                
+                // Determine if this is mobile
+                const isMobile = window.innerWidth < 768;
+                const layoutSize = isMobile ? {
+                    width: '100%',
+                    height: 0,
+                    'padding-bottom': '100%'
+                } : {
+                    width: PLOT_SIZE,
+                    height: PLOT_SIZE
+                };
+                
+                // Set up layout with fixed square dimensions or responsive setup
+                const layout = {
+                    title: {
+                        text: title,
+                        font: { size: isMobile ? 14 : 16 }
+                    },
+                    autosize: isMobile,
+                    margin: { t: 40, r: 40, b: 30, l: 40 },
+                    xaxis: { 
+                        showticklabels: false,
+                        constrain: 'domain'
+                    },
+                    yaxis: { 
+                        showticklabels: false,
+                        scaleanchor: 'x',
+                        scaleratio: 1,
+                        constrain: 'domain'
+                    }
+                };
+                
+                // Add responsive dimensions only if not mobile
+                if (!isMobile) {
+                    layout.width = PLOT_SIZE;
+                    layout.height = PLOT_SIZE;
+                }
+                
+                // Apply custom colorbar options if provided
+                if (options.colorbar) {
+                    layout.coloraxis = layout.coloraxis || {};
+                    layout.coloraxis.colorbar = {
+                        thickness: isMobile ? 15 : 20,
+                        len: 0.7,
+                        ...(options.colorbar)
+                    };
+                }
+                
+                // Plot configuration
+                const config = {
+                    responsive: true,
+                    displayModeBar: false,
+                    scrollZoom: false
+                };
+                
+                // Create the plot
+                Plotly.newPlot(container, [trace], layout, config);
+                
+                // Store original data dimensions
+                container._origData = {
+                    width: transposedData[0].length,
+                    height: transposedData.length
+                };
+                
+                // Set up efficient zoom handlers
+                setupEfficientZoomHandlers(container);
+                
+            } catch (error) {
+                console.error("Error creating microstructure plot:", error);
+                container.innerHTML = `<div style="color:red;padding:20px;text-align:center;">
+                    Error creating visualization:<br>${error.message}
+                </div>`;
+            }
+        } else {
+            // Use original function for all other plots
+            originalCreateHeatmap(container, data, title, colorscale, options);
+        }
+    };
+})();
+
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Get the invert button element
+    const invertColorsBtn = document.getElementById('invert-colors');
+    
+    // Remove any existing event listeners to avoid conflicts
+    if (invertColorsBtn) {
+        // Create a clone to remove all event listeners
+        const newInvertBtn = invertColorsBtn.cloneNode(true);
+        invertColorsBtn.parentNode.replaceChild(newInvertBtn, invertColorsBtn);
+        
+        // Add the event listener to the fresh button
+        newInvertBtn.addEventListener('click', function() {
+            console.log('Invert button clicked');
+            // Get the canvas and context
+            const canvas = document.getElementById('drawing-canvas');
+            const ctx = canvas.getContext('2d');
+            
+            // Get current image data
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+            
+            console.log('Inverting colors: image size', canvas.width, 'x', canvas.height);
+            
+            // Invert all pixel colors
+            for (let i = 0; i < data.length; i += 4) {
+                data[i] = 255 - data[i];         // Red
+                data[i + 1] = 255 - data[i + 1]; // Green
+                data[i + 2] = 255 - data[i + 2]; // Blue
+                // Alpha channel (data[i + 3]) remains unchanged
+            }
+            
+            // Update the canvas with the inverted data
+            ctx.putImageData(imageData, 0, 0);
+            
+            // Save the state for undo/redo
+            if (typeof saveCanvasState === 'function') {
+                saveCanvasState();
+                console.log('Canvas state saved after inversion');
+            } else {
+                console.error('saveCanvasState function not found');
+            }
+        });
+        
+        console.log('Invert button reinitialized');
+    } else {
+        console.error('Invert button element not found');
+    }
+});
+
+// // CAPTCHA handling script
+        function showComingSoonModal(modelName) {
+            document.getElementById('modalModelName').textContent = modelName;
+            document.getElementById('comingSoonModal').style.display = 'flex';
+        }
+
+
+        function hideModal() {
+            document.getElementById('comingSoonModal').style.display = 'none';
+            document.getElementById('experimentalModal').style.display = 'none';
+        }
+
+        // Close modals when clicking outside
+        window.onclick = function(event) {
+            if (event.target == document.getElementById('comingSoonModal')) {
+                hideModal();
+            }
+            if (event.target == document.getElementById('experimentalModal')) {
+                hideModal();
+            }
+        };
+
+// CAPTCHA functionality
+let captchaId = null;
+
+function shouldShowCaptcha(context = "page") {
+    // Set expiry times (in ms)
+    const expiryTimes = {
+        page: 30 * 60 * 1000,         //  30 mins for page
+        simulation: 0.5 * 60 * 1000     // 5 minutes for simulation
+    };
+    const key = context === "simulation" ? "captchaVerified_simulation" : "captchaVerified_page";
+    const expiryMs = expiryTimes[context] || expiryTimes.page;
+    return true;
+}
+
+function loadCaptcha() {
+    fetch('/api/captcha').then(r=>r.json()).then(data=>{
+        document.getElementById('captcha-img').src = data.image;
+        captchaId = data.captcha_id;
+        document.getElementById('captcha-input').value = '';
+        document.getElementById('captcha-error').style.display = 'none';
+    });
+}
+
+document.getElementById('refresh-captcha').onclick = loadCaptcha;
+
+document.getElementById('captcha-submit').onclick = function() {
+    const val = document.getElementById('captcha-input').value.trim();
+    if(val.length !== 6) {
+        document.getElementById('captcha-error').textContent = "Please enter the 6-character code.";
+        document.getElementById('captcha-error').style.display = 'block';
+        return;
+    }
+    
+    fetch('/api/verify-captcha', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            captcha_id: captchaId,
+            captcha_code: val
+        })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if(data.success) {
+            document.getElementById('captcha-modal').style.display = 'none';
+            
+            // IMPORTANT: Wait for cookie to be set, then initialize app
+            setTimeout(() => {
+                initApp();
+            }, 500);
+        } else {
+            document.getElementById('captcha-error').textContent = data.error || "Incorrect CAPTCHA.";
+            document.getElementById('captcha-error').style.display = 'block';
+            loadCaptcha();
+        }
+    })
+    .catch(() => {
+        document.getElementById('captcha-error').textContent = "Server error. Please try again.";
+        document.getElementById('captcha-error').style.display = 'block';
+        loadCaptcha();
+    });
+};
+
+
+document.addEventListener('DOMContentLoaded', function() {
+    if (shouldShowCaptcha()) {
+        document.getElementById('captcha-modal').style.display = 'flex';
+        loadCaptcha();
+
+        // Show the info message
+        document.getElementById('info-panel').innerHTML = `
+            <div style="text-align: center; padding: 20px;">
+                <p style="font-size: 18px; color: #3498db; margin-bottom: 10px;">
+                    <strong>🔒 Security Verification Required</strong>
+                </p>
+                <p style="color: #666;">
+                    Please solve the CAPTCHA to load the page fully and access all features.
+                </p>
+            </div>
+        `;
+    } else {
+        document.getElementById('captcha-modal').style.display = 'none';
+        initApp();
+    }
+});
+</script>
+</body>
+</html>

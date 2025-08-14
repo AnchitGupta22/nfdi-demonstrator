@@ -27,7 +27,7 @@ FROM nvcr.io/nvidia/pytorch:24.12-py3
 # Define variables
 ENV WORKSPACE_DIR="/workspace"
 ENV PROJECT_DIR="${WORKSPACE_DIR}/nfdi-demonstrator"
-ENV GIT_REPO="https://github.com/DataAnalyticsEngineering/nfdi-demonstrator.git"
+ENV GIT_REPO="https://github.com/AnchitGupta22/nfdi-demonstrator.git"
 
 # Install dependencies
 RUN apt update && \

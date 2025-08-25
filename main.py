@@ -24,6 +24,10 @@ import random
 import string
 import uuid
 from datetime import datetime, timedelta
+import redis
+from typing import Optional
+from functools import lru_cache
+import psutil
 
 # Create FastAPI app
 app = FastAPI()
@@ -43,36 +47,73 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 args = {"device": device, "dtype": dtype}
 print(f"Using device: {device}, dtype: {dtype}")
 
-# Load the data
-file_path = os.path.join("data", "feature_engineering_data.h5")
-group_name = "train_set"
+# Global variables to hold models
+_samples = None
+_simulation = None
+_vrnn = None
 
-if not os.path.isfile(file_path):
-    from utils import darus_download
-    print("Downloading data from DaRUS...")
-    darus_download(repo_id=3366, file_id=4, file_path=file_path)
+@lru_cache()
+def get_settings():
+    return {
+        "redis_host": os.getenv("REDIS_HOST", "localhost"),
+        "redis_port": int(os.getenv("REDIS_PORT", "6379")),
+        "device": "cuda" if torch.cuda.is_available() and os.getenv("FORCE_CPU") != "1" else "cpu",
+        "model_cache_size": int(os.getenv("MODEL_CACHE_SIZE", "1")),
+    }
 
-# Load dataset
-samples = MicrostructureImageDataset(
-    file_path=file_path,
-    group_name=group_name
-)
-print('Number of samples in dataset:', len(samples))
-
-# Load the simulation model
-simulation = load_fnocg_model(problem="thermal", dim=2, bc="per",
-                             device=device, dtype=dtype, compile_model=True)
-
-# Load the surrogate model if available
-try:
-    from utils import unpack_sym
-    if device == "cpu":
-        vrnn_model_file = os.path.join("models", "vrnn_thermal_2d_per_jit_cpu.pt")
-    else:
-        vrnn_model_file = os.path.join("models", "vrnn_thermal_2d_per_jit.pt")
+def get_samples():
+    global _samples
+    if _samples is None:
+        file_path = os.path.join("data", "feature_engineering_data.h5")
+        group_name = "train_set"
+        
+        if not os.path.isfile(file_path):
+            from utils import darus_download
+            print("Downloading data from DaRUS...")
+            darus_download(repo_id=3366, file_id=4, file_path=file_path)
+        
+        _samples = MicrostructureImageDataset(file_path=file_path, group_name=group_name)
+        print(f'Worker {os.getpid()}: Loaded {len(_samples)} samples')
     
-    with torch.inference_mode():
-        vrnn = torch.jit.load(vrnn_model_file, map_location=device).to(device=device, dtype=torch.float32)
+    return _samples
+
+def get_simulation():
+    global _simulation
+    if _simulation is None:
+        _simulation = load_fnocg_model(
+            problem="thermal", dim=2, bc="per",
+            device=device, dtype=dtype, compile_model=True
+        )
+        print(f'Worker {os.getpid()}: Loaded simulation model')
+    
+    return _simulation
+
+def get_surrogate():
+    global _vrnn
+    if _vrnn is None:
+        try:
+            if device == "cpu":
+                vrnn_model_file = os.path.join("models", "vrnn_thermal_2d_per_jit_cpu.pt")
+            else:
+                vrnn_model_file = os.path.join("models", "vrnn_thermal_2d_per_jit.pt")
+            
+            with torch.inference_mode():
+                _vrnn = torch.jit.load(vrnn_model_file, map_location=device).to(device=device, dtype=torch.float32)
+            
+            print(f'Worker {os.getpid()}: Loaded surrogate model')
+        except Exception as e:
+            print(f'Worker {os.getpid()}: Could not load surrogate model: {e}')
+            _vrnn = False  # Mark as failed
+    
+    return _vrnn if _vrnn is not False else None
+
+def create_surrogate_function():
+    """Create surrogate function if model is available"""
+    vrnn = get_surrogate()
+    if vrnn is None:
+        return None
+    
+    from utils import unpack_sym
     
     def surrogate(features, params):
         R = params[0] / params[1]
@@ -80,12 +121,31 @@ try:
                              torch.tensor([[1/R, R]], dtype=torch.float32, device=params.device)], dim=-1)
         return unpack_sym(vrnn(features), dim=2).squeeze() * params[0]
     
-    print("Surrogate model loaded successfully")
-    has_surrogate = True
-except Exception as e:
-    print(f"Could not load surrogate model: {e}")
-    surrogate = None
-    has_surrogate = False
+    return surrogate
+
+# # Load the data
+# samples = get_samples()
+
+# # Load the simulation model
+# simulation = get_simulation()
+
+# # Load the surrogate model if available
+# try:
+#     from utils import unpack_sym
+#     vrnn = get_surrogate()
+    
+#     def surrogate(features, params):
+#         R = params[0] / params[1]
+#         features = torch.cat([features.to(dtype=torch.float32, device=params.device), 
+#                              torch.tensor([[1/R, R]], dtype=torch.float32, device=params.device)], dim=-1)
+#         return unpack_sym(vrnn(features), dim=2).squeeze() * params[0]
+    
+#     print("Surrogate model loaded successfully")
+#     has_surrogate = True
+# except Exception as e:
+#     print(f"Could not load surrogate model: {e}")
+#     surrogate = None
+#     has_surrogate = False
 
 # Define simulation parameters model
 class SimulationParams(BaseModel):
@@ -252,8 +312,8 @@ def run_thermal_simulation(microstructure, kappa1, alpha):
             kappa_bar = -hom_flux @ loading.inverse()
             eig_kappa = torch.linalg.eigvals(kappa_bar).real.cpu()
             
-            # Run surrogate if available (dummy response for custom images)
-            if surrogate is not None:
+            surrogate_func = create_surrogate_function()
+            if surrogate_func is not None:
                 surrogate_results = {
                     'eig_pred': [float(eig_kappa[0].item()) if hasattr(eig_kappa[0], 'item') else float(eig_kappa[0]), 
                                 float(eig_kappa[1].item()) if hasattr(eig_kappa[1], 'item') else float(eig_kappa[1])]
@@ -284,25 +344,66 @@ def run_thermal_simulation(microstructure, kappa1, alpha):
         raise HTTPException(status_code=500, detail=f"Error in thermal simulation: {str(e)}")
 
 # In-memory store for captcha codes (for demo; use a persistent store for production)
-captcha_store = {}
-captcha_tokens = {}
+try:
+    redis_client = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
+    redis_client.ping()
+    USE_REDIS = True
+    print("Connected to Redis for CAPTCHA storage")
+except:
+    print("Warning: Redis not available, falling back to in-memory storage (not suitable for production)")
+    USE_REDIS = False
+    captcha_store = {}
+    captcha_tokens = {}
 
-def add_captcha_token(token):
-    captcha_tokens[token] = datetime.now() + timedelta(minutes=5)  # Token expires in 5 minutes
+def store_captcha(captcha_id: str, code: str):
+    if USE_REDIS:
+        redis_client.setex(f"captcha:{captcha_id}", 300, code)  # 5 minute expiry
+    else:
+        captcha_store[captcha_id] = code
 
-def is_captcha_token_valid(token):
-    expiry = captcha_tokens.get(token)
-    if expiry and expiry > datetime.now():
-        del captcha_tokens[token]  # Remove token after validation
-        return True
-    return False
+def get_captcha_code(captcha_id: str) -> Optional[str]:
+    if USE_REDIS:
+        return redis_client.get(f"captcha:{captcha_id}")
+    else:
+        return captcha_store.get(captcha_id)
+
+def delete_captcha(captcha_id: str):
+    if USE_REDIS:
+        redis_client.delete(f"captcha:{captcha_id}")
+    else:
+        captcha_store.pop(captcha_id, None)
+
+def store_captcha_token(token: str):
+    expiry_time = datetime.now() + timedelta(minutes=5)
+    if USE_REDIS:
+        redis_client.setex(f"token:{token}", 300, expiry_time.isoformat())
+    else:
+        captcha_tokens[token] = expiry_time
+
+def is_captcha_token_valid(token: str) -> bool:
+    if USE_REDIS:
+        expiry_str = redis_client.get(f"token:{token}")
+        if not expiry_str:
+            return False
+        expiry = datetime.fromisoformat(expiry_str)
+        if expiry > datetime.now():
+            return True
+        redis_client.delete(f"token:{token}")
+        return False
+    else:
+        expiry = captcha_tokens.get(token)
+        if expiry and expiry > datetime.now():
+            return True
+        captcha_tokens.pop(token, None)
+        return False
 
 # API endpoint to generate captcha
 @app.get("/api/captcha")
 async def get_captcha():
     code = ''.join(random.choices(string.ascii_letters + string.digits, k=6))
     captcha_id = str(uuid.uuid4())
-    captcha_store[captcha_id] = code
+    store_captcha(captcha_id, code)
+    
     image = ImageCaptcha(width=280, height=90)
     data = image.generate(code)
     image_bytes = data.getvalue()
@@ -312,50 +413,35 @@ async def get_captcha():
 # API endpoint to verify captcha
 @app.post("/api/verify-captcha")
 async def verify_captcha(request: Request):
-    print("=== CAPTCHA VERIFICATION CALLED ===")
     data = await request.json()
-    print(f"Received data: {data}")
     captcha_id = data.get("captcha_id")
     captcha_code = data.get("captcha_code", "")
-    print(f"Captcha ID: {captcha_id}, Code: {captcha_code}")
     
     if not captcha_id or not captcha_code:
-        print("Missing captcha_id or captcha_code")
         return {"success": False, "error": "Missing captcha_id or captcha_code"}
     
-    real_code = captcha_store.get(captcha_id)
-    print(f"Real code from store: {real_code}")
+    real_code = get_captcha_code(captcha_id)
     
     if not real_code:
-        print("CAPTCHA expired or not found")
         return {"success": False, "error": "CAPTCHA expired. Please refresh."}
     
     if captcha_code.strip().lower() == real_code.lower():
-        print("CAPTCHA code matches!")
-        del captcha_store[captcha_id]
+        delete_captcha(captcha_id)
         token = str(uuid.uuid4())
-        add_captcha_token(token)
+        store_captcha_token(token)
         
-        # Debug: Print what's being stored
-        print(f"Setting CAPTCHA token: {token}")
-        print(f"Token will expire at: {captcha_tokens[token]}")
-        print(f"All tokens after adding: {captcha_tokens}")
-        
-        # Set HTTP-only cookie with corrected settings
         response = JSONResponse(content={"success": True})
         response.set_cookie(
             key="captcha_token",
             value=token,
             httponly=True,
-            secure=True,        # Must be False for HTTP (localhost)
-            samesite="Lax",      # Lax is better for cross-tab compatibility
-            max_age=300,         # 5 minutes
-            path="/"             # Ensure cookie is sent to all paths
+            secure=True,  # Set to True for HTTPS
+            samesite="Lax",
+            max_age=300,
+            path="/"
         )
-        print("Cookie set in response")
         return response
     else:
-        print(f"CAPTCHA code mismatch. Expected: {real_code}, Got: {captcha_code}")
         return {"success": False, "error": "Incorrect CAPTCHA. Please try again."}
 
 # CAPTCHA-protected API endpoint for Voila
@@ -398,10 +484,14 @@ async def proxy_voila(request: Request, path: str = "", captcha_token: str = Coo
 # API endpoint to get basic info
 @app.get("/api/info")
 async def get_info():
+    samples = get_samples()
+    surrogate_func = create_surrogate_function()  # Use function factory
+    
     return {
         "sample_count": len(samples),
-        "has_surrogate": has_surrogate,
-        "device": device
+        "has_surrogate": surrogate_func is not None,  # Check function instead
+        "device": device,
+        "worker_pid": os.getpid()
     }
 
 def get_captcha_token(captcha_token: str = Header(None)):
@@ -412,22 +502,17 @@ def get_captcha_token(captcha_token: str = Header(None)):
 @app.post("/api/simulate")
 async def run_simulation(
     params: SimulationParams,
-    captcha_token: str = Cookie(None)  # Read token from HTTP-only cookie
+    captcha_token: str = Cookie(None)
 ):
-    print("Received captcha_token:", captcha_token)
-    print("All captcha_tokens:", captcha_tokens)
-    # Remove expired tokens
-    now = datetime.now()
-    expired = [k for k, v in captcha_tokens.items() if v < now]
-    for k in expired:
-        del captcha_tokens[k]
-
-    # Check if token is valid and not expired
-    expiry = captcha_tokens.get(captcha_token)
-    if not captcha_token or not expiry or expiry < now:
+    # Validate CAPTCHA
+    if not is_captcha_token_valid(captcha_token):
         raise HTTPException(status_code=403, detail="CAPTCHA required")
-    # Do NOT delete the token here; allow reuse until expiry
-
+    
+    # Get models (lazy loaded per worker)
+    samples = get_samples()
+    simulation = get_simulation()
+    surrogate_func = create_surrogate_function()  # Get surrogate function
+    
     try:
         # Validate microstructure ID
         if params.ms_id < 0 or params.ms_id >= len(samples):
@@ -472,9 +557,9 @@ async def run_simulation(
             eig_kappa = torch.linalg.eigvals(kappa_bar).real.cpu()
             
             # Run surrogate if available
-            if surrogate is not None:
+            if surrogate_func is not None:
                 with torch.inference_mode():
-                    kappa_pred = surrogate(features.to(**args), model_params.to(**args)).squeeze()
+                    kappa_pred = surrogate_func(features.to(**args), model_params.to(**args)).squeeze()
                     eig_pred = torch.linalg.eigvals(kappa_pred).real.cpu()
                     surrogate_results = {
                         'eig_pred': eig_pred.tolist()
@@ -501,7 +586,6 @@ async def run_simulation(
             return results
     except Exception as e:
         print(f"Error in simulation: {str(e)}")
-        print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -635,6 +719,41 @@ async def get_simulator_html():
         html_content = f.read()
     return HTMLResponse(content=html_content)
 
+@app.get("/api/health")
+async def health_check():
+    """Health check endpoint for monitoring"""
+    try:
+        # Get current process info
+        process = psutil.Process(os.getpid())
+        memory_mb = process.memory_info().rss / (1024**2)
+        cpu_percent = process.cpu_percent()
+        
+        # Test model loading
+        samples = get_samples()
+        simulation = get_simulation()
+        surrogate = get_surrogate()
+        
+        return {
+            "status": "healthy",
+            "worker_pid": os.getpid(),
+            "memory_mb": round(memory_mb, 1),
+            "cpu_percent": round(cpu_percent, 1),
+            "models_loaded": {
+                "samples": len(samples) if samples else 0,
+                "simulation": simulation is not None,
+                "surrogate": surrogate is not None
+            },
+            "redis_connected": USE_REDIS,
+            "device": device
+        }
+    except Exception as e:
+        return {
+            "status": "unhealthy",
+            "error": str(e),
+            "worker_pid": os.getpid()
+        }
+
 if __name__ == "__main__":
     # Run the FastAPI app with Uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    #uvicorn.run(app, host="0.0.0.0", port=8000)
+    pass

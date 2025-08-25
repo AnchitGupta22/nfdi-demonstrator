@@ -3936,7 +3936,7 @@ function ensureCaptchaVerified(context = "page") {
                     submitBtn.onclick = origHandler; // Restore original handler
                     
                     // Increase the delay to ensure cookie is properly set
-                    setTimeout(resolve, 500); // <-- Increase from 150ms to 500ms
+                    setTimeout(resolve, 50); // <-- Increase from 150ms to 500ms
                 } else {
                     document.getElementById('captcha-error').textContent = data.error || "Incorrect CAPTCHA.";
                     document.getElementById('captcha-error').style.display = 'block';

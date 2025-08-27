@@ -435,7 +435,7 @@ async def verify_captcha(request: Request):
             key="captcha_token",
             value=token,
             httponly=True,
-            secure=True,  # Set to True for HTTPS
+            secure=False,  # Set to True for HTTPS
             samesite="Lax",
             max_age=300,
             path="/"

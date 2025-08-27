@@ -20,6 +20,7 @@ To start the app, run the following command inside the container:
 ```
 gunicorn -k uvicorn.workers.UvicornWorker main:app --workers 2 --bind 0.0.0.0:8000 --timeout 120 --worker-connections 1000
 ```
+Note: You can adjust the number of workers based on your system's CPU cores. The formula is usually 2 * number_of_cores + 1.
 # How to run the Voila notebook server for the NFDI Demonstrator
 To run the Voila notebook server, use the following command in another terminal inside the same container image:
 ```voila nfdi.ipynb --template=material --theme=light --port=8888 --Voila.ip=0.0.0.0```

@@ -28,6 +28,7 @@ import redis
 from typing import Optional
 from functools import lru_cache
 import psutil
+from collections import defaultdict
 
 # Create FastAPI app
 app = FastAPI()
@@ -752,6 +753,37 @@ async def health_check():
             "error": str(e),
             "worker_pid": os.getpid()
         }
+
+# Simple metrics storage
+request_metrics = defaultdict(list)
+
+@app.middleware("http")
+async def add_process_time_header(request, call_next):
+    start_time = time.time()
+    response = await call_next(request)
+    process_time = time.time() - start_time
+    
+    # Store metrics
+    endpoint = request.url.path
+    request_metrics[endpoint].append(process_time)
+    
+    response.headers["X-Process-Time"] = str(process_time)
+    response.headers["X-Worker-PID"] = str(os.getpid())
+    return response
+
+@app.get("/api/metrics")
+async def get_metrics():
+    """Get performance metrics"""
+    metrics = {}
+    for endpoint, times in request_metrics.items():
+        if times:
+            metrics[endpoint] = {
+                "count": len(times),
+                "avg_time": sum(times) / len(times),
+                "max_time": max(times),
+                "min_time": min(times)
+            }
+    return metrics
 
 if __name__ == "__main__":
     # Run the FastAPI app with Uvicorn

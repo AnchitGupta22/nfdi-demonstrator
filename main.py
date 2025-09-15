@@ -29,9 +29,15 @@ from typing import Optional
 from functools import lru_cache
 import psutil
 from collections import defaultdict
+from fastapi.middleware.gzip import GZipMiddleware
+import hashlib
+import json
+import zlib
 
 # Create FastAPI app
 app = FastAPI()
+# add gzip to reduce JSON/plot payloads
+app.add_middleware(GZipMiddleware, minimum_size=500)
 
 # Add CORS middleware
 app.add_middleware(
@@ -278,22 +284,29 @@ def run_thermal_simulation(microstructure, kappa1, alpha):
         else:
             microstructure_tensor = microstructure
         
-        # Set up parameters
-        model_params = torch.tensor([1., kappa1]).reshape(2, 1)
+        # Move to device early and reuse tensors
+        microstructure_tensor = microstructure_tensor.to(device)
+        
+        # Set up parameters - create on device directly
+        model_params = torch.tensor([1., kappa1], device=device).reshape(2, 1)
         param_field = get_param_fields(microstructure_tensor, model_params).to(**args).unsqueeze(0)
         
-        # Set up loading based on alpha
-        alpha_rad = torch.deg2rad(torch.tensor(alpha))
+        # Set up loading based on alpha - create on device directly
+        alpha_rad = torch.deg2rad(torch.tensor(alpha, device=device))
         loading = torch.tensor([
             [torch.cos(alpha_rad), -torch.sin(alpha_rad)], 
             [torch.sin(alpha_rad), torch.cos(alpha_rad)]
-        ], **args)
+        ], device=device, dtype=dtype)
         
-        # Run simulation
+        # Run simulation with mixed precision
         with torch.inference_mode():
-            field = simulation(param_field, loading)
-            if device != "cpu":
+            if str(device).startswith("cuda"):
+                # use AMP for faster inference / lower memory
+                with torch.cuda.amp.autocast():
+                    field = simulation(param_field, loading)
                 torch.cuda.synchronize()
+            else:
+                field = simulation(param_field, loading)
             
             # Process results
             vol_frac = microstructure_tensor.mean()
@@ -466,7 +479,18 @@ async def proxy_voila(request: Request, path: str = "", captcha_token: str = Coo
     if "_xsrf" in cookies:
         headers["X-XSRFToken"] = cookies["_xsrf"]
 
-    async with httpx.AsyncClient(cookies=cookies, timeout=30.0) as client:
+    # use shared client created at startup
+    client = getattr(app.state, "httpx_client", None)
+    if client is None:
+        # fallback to on-demand client (shouldn't normally happen)
+        async with httpx.AsyncClient(cookies=cookies, timeout=30.0) as tmp_client:
+            resp = await tmp_client.request(
+                request.method,
+                voila_url,
+                headers=headers,
+                content=await request.body()
+            )
+    else:
         resp = await client.request(
             request.method,
             voila_url,
@@ -508,7 +532,13 @@ async def run_simulation(
     # Validate CAPTCHA
     if not is_captcha_token_valid(captcha_token):
         raise HTTPException(status_code=403, detail="CAPTCHA required")
-    
+
+    # Try cache first (best-effort)
+    cache_key = make_cache_key_for_sample(params.ms_id, params.kappa1, params.alpha)
+    cached = cache_result_get(cache_key)
+    if cached:
+        return cached
+
     # Get models (lazy loaded per worker)
     samples = get_samples()
     simulation = get_simulation()
@@ -584,6 +614,12 @@ async def run_simulation(
                 'surrogate_results': surrogate_results
             }
             
+            # store result in cache (best-effort)
+            try:
+                cache_result_set(cache_key, results, ttl=3600)
+            except Exception:
+                pass
+
             return results
     except Exception as e:
         print(f"Error in simulation: {str(e)}")
@@ -618,6 +654,12 @@ async def upload_microstructure(
         # Read the uploaded file
         try:
             contents = await file.read()
+            # check cache by raw bytes
+            cache_key = make_cache_key_for_image(contents, kappa1, alpha)
+            cached = cache_result_get(cache_key)
+            if cached:
+                return cached
+
             image = Image.open(io.BytesIO(contents))
         except Exception as e:
             raise HTTPException(status_code=400, detail=f"Invalid image file: {str(e)}")
@@ -633,6 +675,12 @@ async def upload_microstructure(
         
         # Run simulation on the binary microstructure
         result = run_thermal_simulation(binary_image, kappa1, alpha)
+
+        # store cache (best-effort)
+        try:
+            cache_result_set(cache_key, result, ttl=3600)
+        except Exception:
+            pass
         
         processing_time = time.time() - start_time
         print(f"Uploaded image processed in {processing_time:.2f} seconds")
@@ -669,6 +717,14 @@ async def process_drawing(
         
         # Parse and validate the drawing
         try:
+            # prepare bytes for caching
+            base64_data = re.sub(r'^data:image/\w+;base64,', '', drawing)
+            image_bytes = base64.b64decode(base64_data)
+            cache_key = make_cache_key_for_image(image_bytes, kappa1, alpha)
+            cached = cache_result_get(cache_key)
+            if cached:
+                return cached
+
             binary_image = parse_base64_image(drawing)
         except ValueError as e:
             raise HTTPException(status_code=400, detail=str(e))
@@ -689,6 +745,12 @@ async def process_drawing(
         
         # Run simulation on the binary microstructure
         result = run_thermal_simulation(binary_image, kappa1, alpha)
+
+        # store cache (best-effort)
+        try:
+            cache_result_set(cache_key, result, ttl=3600)
+        except Exception:
+            pass
         
         processing_time = time.time() - start_time
         print(f"Drawing processed in {processing_time:.2f} seconds")
@@ -785,7 +847,69 @@ async def get_metrics():
             }
     return metrics
 
-if __name__ == "__main__":
-    # Run the FastAPI app with Uvicorn
-    #uvicorn.run(app, host="0.0.0.0", port=8000)
-    pass
+@app.on_event("startup")
+async def startup_event():
+    # single shared client for outbound proxy calls (keeps connections alive)
+    app.state.httpx_client = httpx.AsyncClient(timeout=30.0)
+    # Torch tuning for inference
+    try:
+        torch.backends.cudnn.benchmark = True
+    except Exception:
+        pass
+    try:
+        torch.set_num_threads(int(os.getenv("TORCH_NUM_THREADS", psutil.cpu_count(logical=False) or 1)))
+    except Exception:
+        pass
+    
+    # PRELOAD MODELS ON STARTUP (this is the key fix)
+    print("Preloading models...")
+    try:
+        samples = get_samples()
+        simulation = get_simulation() 
+        surrogate = get_surrogate()
+        print(f"Models preloaded: samples={len(samples)}, simulation={simulation is not None}, surrogate={surrogate is not None}")
+    except Exception as e:
+        print(f"Error preloading models: {e}")
+    
+    print("startup: httpx client created, torch tuned, models preloaded")
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    client = getattr(app.state, "httpx_client", None)
+    if client:
+        await client.aclose()
+
+def make_cache_key_for_sample(ms_id: int, kappa1: float, alpha: float) -> str:
+    return f"sim:ms:{ms_id}:k:{kappa1:.6f}:a:{alpha:.4f}"
+
+def make_cache_key_for_image(image_bytes: bytes, kappa1: float, alpha: float) -> str:
+    h = hashlib.sha256(image_bytes).hexdigest()
+    return f"sim:img:{h}:k:{kappa1:.6f}:a:{alpha:.4f}"
+
+def cache_result_set(key: str, data: dict, ttl: int = 3600):
+    try:
+        payload = json.dumps(data, separators=(",", ":"), ensure_ascii=False)
+        compressed = zlib.compress(payload.encode("utf-8"))
+        if USE_REDIS:
+            redis_client.setex(key, ttl, compressed)
+        else:
+            captcha_store[key] = compressed
+    except Exception as e:
+        print("cache set error:", e)
+
+def cache_result_get(key: str) -> Optional[dict]:
+    try:
+        if USE_REDIS:
+            raw = redis_client.get(key)
+        else:
+            raw = captcha_store.get(key)
+        if not raw:
+            return None
+        # redis may return bytes or str depending on decode_responses
+        if isinstance(raw, str):
+            raw = raw.encode("latin1")
+        decompressed = zlib.decompress(raw)
+        return json.loads(decompressed.decode("utf-8"))
+    except Exception:
+        return None
+

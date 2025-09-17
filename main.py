@@ -851,23 +851,32 @@ async def get_metrics():
 async def startup_event():
     # single shared client for outbound proxy calls (keeps connections alive)
     app.state.httpx_client = httpx.AsyncClient(timeout=30.0)
-    # Torch tuning for inference
+    
+    # Torch tuning for high concurrency
     try:
         torch.backends.cudnn.benchmark = True
-    except Exception:
-        pass
-    try:
-        torch.set_num_threads(int(os.getenv("TORCH_NUM_THREADS", psutil.cpu_count(logical=False) or 1)))
+        torch.backends.cudnn.deterministic = False  # Faster but less deterministic
+        # Limit CPU threads to prevent resource contention with multiple requests
+        torch.set_num_threads(max(1, psutil.cpu_count(logical=False) // 2))
     except Exception:
         pass
     
-    # PRELOAD MODELS ON STARTUP (this is the key fix)
+    # PRELOAD MODELS ON STARTUP
     print("Preloading models...")
     try:
         samples = get_samples()
         simulation = get_simulation() 
         surrogate = get_surrogate()
         print(f"Models preloaded: samples={len(samples)}, simulation={simulation is not None}, surrogate={surrogate is not None}")
+        
+        # Warm up GPU with a dummy inference
+        if str(device).startswith("cuda"):
+            dummy_input = torch.randn(1, 1, 64, 64, device=device, dtype=torch.float32)
+            with torch.inference_mode():
+                _ = simulation(dummy_input, torch.eye(2, device=device, dtype=dtype))
+            torch.cuda.empty_cache()
+            print("GPU warmed up successfully")
+            
     except Exception as e:
         print(f"Error preloading models: {e}")
     

@@ -3936,7 +3936,7 @@ function ensureCaptchaVerified(context = "page") {
                     submitBtn.onclick = origHandler; // Restore original handler
                     
                     // Increase the delay to ensure cookie is properly set
-                    setTimeout(resolve, 150); // <-- Increase from 150ms to 500ms
+                    setTimeout(resolve, 150);
                 } else {
                     document.getElementById('captcha-error').textContent = data.error || "Incorrect CAPTCHA.";
                     document.getElementById('captcha-error').style.display = 'block';
@@ -4526,7 +4526,9 @@ function shouldShowCaptcha(context = "page") {
     };
     const key = context === "simulation" ? "captchaVerified_simulation" : "captchaVerified_page";
     const expiryMs = expiryTimes[context] || expiryTimes.page;
+    // set to false for test [TESTING PURPOSES]
     return true;
+    // return false; // only for testing purposes
 }
 
 function loadCaptcha() {

@@ -1,0 +1,28 @@
+sudo podman rm -f nfdi-demo
+
+sudo podman create --security-opt=label=disable --name nfdi-demo \
+  --device nvidia.com/gpu=all \
+  -p 8000:8000 \
+  -v "${HOME}/nfdi-demonstrator:/workspace/nfdi-demonstrator:Z" \
+  nfdi-demonstrator
+  
+sudo podman start nfdi-demo
+sudo podman exec -it nfdi-demo /bin/bash
+
+redis-server --daemonize yes
+
+export CUDA_VISIBLE_DEVICES=0,1
+gunicorn -k uvicorn.workers.UvicornWorker main:app \
+  --workers 4 \
+  --bind 0.0.0.0:8000 \
+  --timeout 120 \
+  --worker-connections 1500 \
+  --threads 1 \
+  --max-requests 300 \
+  --max-requests-jitter 30 \
+  --worker-tmp-dir /dev/shm
+
+
+pkill -f gunicorn
+ps aux | grep gunicorn
+kill <PID>

@@ -65,7 +65,7 @@ def test_simulation_request(request_id):
 
 def test_concurrent_simulations(num_requests=10, max_workers=5):
     """Test concurrent simulation requests"""
-    print(f"🧪 Testing {num_requests} concurrent simulation requests (CAPTCHA protected)...")
+    print(f"🧪 Testing {num_requests} concurrent simulation requests (CAPTCHA disabled)...")
     
     start_time = time.time()
     
@@ -147,8 +147,8 @@ if __name__ == "__main__":
     print("🎯 Advanced Multi-Worker Performance Testing")
     print("=" * 50)
     
-    # Test 1: Simulation endpoint (CAPTCHA protected)
-    test_concurrent_simulations(10, 5)
+    # Test 1: Simulation endpoint
+    test_concurrent_simulations(40, 10)
     
     # Test 2: Extreme load on info endpoint
     test_info_endpoint_under_load()

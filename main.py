@@ -33,6 +33,8 @@ from fastapi.middleware.gzip import GZipMiddleware
 import hashlib
 import json
 import zlib
+import multiprocessing
+multiprocessing.set_start_method('spawn', force=True)
 
 # Create FastAPI app
 app = FastAPI()
@@ -50,7 +52,14 @@ app.add_middleware(
 
 # Set up device and dtype
 dtype = torch.float64
-device = "cuda" if torch.cuda.is_available() else "cpu"
+
+def get_worker_gpu_id():
+    # Use Gunicorn's WORKER_ID env variable if set, else fallback to PID modulo
+    worker_id = int(os.environ.get("WORKER_ID", os.getpid() % 2))
+    return worker_id % 2  # 2 GPUs: 0 or 1
+
+gpu_id = get_worker_gpu_id()
+device = f"cuda:{gpu_id}" if torch.cuda.is_available() else "cpu"
 args = {"device": device, "dtype": dtype}
 print(f"Using device: {device}, dtype: {dtype}")
 
@@ -116,19 +125,20 @@ def get_surrogate():
 
 def create_surrogate_function():
     """Create surrogate function if model is available"""
-    vrnn = get_surrogate()
-    if vrnn is None:
-        return None
+    # vrnn = get_surrogate()
+    # if vrnn is None:
+    #     return None
     
-    from utils import unpack_sym
+    # from utils import unpack_sym
     
-    def surrogate(features, params):
-        R = params[0] / params[1]
-        features = torch.cat([features.to(dtype=torch.float32, device=params.device), 
-                             torch.tensor([[1/R, R]], dtype=torch.float32, device=params.device)], dim=-1)
-        return unpack_sym(vrnn(features), dim=2).squeeze() * params[0]
+    # def surrogate(features, params):
+    #     R = params[0] / params[1]
+    #     features = torch.cat([features.to(dtype=torch.float32, device=params.device), 
+    #                          torch.tensor([[1/R, R]], dtype=torch.float32, device=params.device)], dim=-1)
+    #     return unpack_sym(vrnn(features), dim=2).squeeze() * params[0]
     
-    return surrogate
+    # return surrogate
+    return None
 
 # # Load the data
 # samples = get_samples()
@@ -298,15 +308,29 @@ def run_thermal_simulation(microstructure, kappa1, alpha):
             [torch.sin(alpha_rad), torch.cos(alpha_rad)]
         ], device=device, dtype=dtype)
         
+        sim = get_simulation() 
+        
+        # DEBUG: print model/input devices before running simulation
+        try:
+            sim = simulation  # uses outer scope simulation loaded by get_simulation()
+            if hasattr(sim, "parameters"):
+                model_dev = next(sim.parameters()).device
+            else:
+                model_dev = torch.device(device)  # fallback
+            print("Model device:", model_dev)
+        except Exception as _e:
+            print("Could not determine model device:", _e)
+        print("Input device:", microstructure_tensor.device)
+        
         # Run simulation with mixed precision
         with torch.inference_mode():
             if str(device).startswith("cuda"):
                 # use AMP for faster inference / lower memory
                 with torch.cuda.amp.autocast():
-                    field = simulation(param_field, loading)
+                    field = sim(param_field, loading) # assumes sim is on correct device
                 torch.cuda.synchronize()
             else:
-                field = simulation(param_field, loading)
+                field = sim(param_field, loading) # CPU inference
             
             # Process results
             vol_frac = microstructure_tensor.mean()
@@ -529,7 +553,7 @@ async def run_simulation(
     params: SimulationParams,
     captcha_token: str = Cookie(None)
 ):
-    # Validate CAPTCHA
+    # Validate CAPTCHA (comment out for TESTING)
     if not is_captcha_token_valid(captcha_token):
         raise HTTPException(status_code=403, detail="CAPTCHA required")
 
@@ -562,6 +586,18 @@ async def run_simulation(
             [torch.cos(alpha_rad), -torch.sin(alpha_rad)], 
             [torch.sin(alpha_rad), torch.cos(alpha_rad)]
         ], **args)
+        
+        # DEBUG: print model/input devices before running simulation
+        try:
+            sim = simulation
+            if hasattr(sim, "parameters"):
+                model_dev = next(sim.parameters()).device
+            else:
+                model_dev = torch.device(device)
+            print("Model device:", model_dev)
+        except Exception as _e:
+            print("Could not determine model device:", _e)
+        print("Input device (param_field):", param_field.device)
         
         # Run simulation
         with torch.inference_mode():

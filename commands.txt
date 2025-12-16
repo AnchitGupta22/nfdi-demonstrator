@@ -5,9 +5,29 @@ sudo podman create --security-opt=label=disable --name nfdi-demo \
   -p 8000:8000 \
   -v "${HOME}/nfdi-demonstrator:/workspace/nfdi-demonstrator:Z" \
   nfdi-demonstrator
-  
-sudo podman start nfdi-demo
-sudo podman exec -it nfdi-demo /bin/bash
+
+sudo podman create --security-opt=label=disable --name nfdi-demo \
+  --device nvidia.com/gpu=all \
+  -p 8000:8000 \
+  -p 8001:8001 \
+  -p 8002:8002 \
+  -p 8003:8003 \
+  -p 8004:8004 \
+  -p 8005:8005 \
+  -p 8006:8006 \
+  -p 8007:8007 \
+  -p 8008:8008 \
+  -p 8009:8009 \
+  -p 8010:8010 \
+  -v "${HOME}/nfdi-demonstrator:/workspace/nfdi-demonstrator:Z" \
+  nfdi-demonstrator
+
+
+
+## Start from here (MAIN COMMANDS)
+
+podman start nfdi-demo
+podman exec -it nfdi-demo /bin/bash
 
 redis-server --daemonize yes
 
@@ -22,7 +42,16 @@ gunicorn -k uvicorn.workers.UvicornWorker main:app \
   --max-requests-jitter 30 \
   --worker-tmp-dir /dev/shm
 
-
+## testing commands (not needed)
 pkill -f gunicorn
 ps aux | grep gunicorn
 kill <PID>
+
+wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+bash Miniconda3-latest-Linux-x86_64.sh
+source ~/.bashrc
+
+conda env create -f environment.yml
+conda activate ht_segregation
+voila grain_voila.ipynb --template=material --theme=light --port=8002 --Voila.ip=0.0.0.0
+curl -I http://localhost:8002

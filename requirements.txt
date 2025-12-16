@@ -18,4 +18,4 @@ uuid
 httpx
 redis
 gunicorn
-playwright
+playwright  # also do "playwright install" to install browser binaries

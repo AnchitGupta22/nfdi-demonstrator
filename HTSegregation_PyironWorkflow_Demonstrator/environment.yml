@@ -1,0 +1,26 @@
+name: ht_segregation
+channels:
+  - conda-forge
+dependencies:
+  - python>=3.12,<3.13
+  - ipykernel
+  - jupyter
+  - pip
+  - numpy =1.26.4
+  - ase =3.26.0
+  - pymatgen =2025.6.14
+  - pyiron_workflow =0.15.2
+  - pyiron_lammps =0.4.6
+  - pandas =2.3.1
+  - lammps =2024.08.29
+  - pysqa =0.3.0
+  - matplotlib
+  - scipy
+  - scikit-learn
+  - pip:
+    - pyiron-workflow-atomistics
+    - pyiron-workflow-lammps
+    - pyiron-snippets==0.2.0
+    - dscribe
+    - voila
+    - voila-material

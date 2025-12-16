@@ -1,0 +1,52 @@
+[build-system]
+requires = [
+    "setuptools>=68.0.0",
+    "wheel",
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "htsegregation-pyironworkflow-demonstrator"
+description = "High-throughput grain boundary segregation demonstrator using pyiron workflow"
+readme = "README.md"
+keywords = ["pyiron", "workflow", "grain-boundary", "segregation", "materials-science", "lammps"]
+requires-python = ">=3.12,<3.13"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Topic :: Scientific/Engineering",
+    "License :: OSI Approved :: BSD License",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3.12",
+]
+dependencies = [
+    "ipykernel",
+    "pyiron-workflow-atomistics",
+    "pyiron-workflow-lammps",
+]
+dynamic = ["version"]
+authors = [
+    { name = "pyiron Team", email = "pyiron@mpie.de" },
+]
+
+[project.license]
+file = "LICENSE"
+
+[project.urls]
+Homepage = "https://github.com/pyiron/HTSegregation_PyironWorkflow_Demonstrator"
+Documentation = "https://github.com/pyiron/HTSegregation_PyironWorkflow_Demonstrator"
+Repository = "https://github.com/pyiron/HTSegregation_PyironWorkflow_Demonstrator"
+"Bug Tracker" = "https://github.com/pyiron/HTSegregation_PyironWorkflow_Demonstrator/issues"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=6.0",
+    "pytest-cov>=2.0",
+    "black>=22.0",
+    "isort>=5.0",
+    "ruff>=0.5",
+]
+notebook = [
+    "jupyter>=1.0.0",
+    "notebook>=6.0.0",
+]

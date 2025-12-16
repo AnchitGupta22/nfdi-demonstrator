@@ -1,0 +1,55 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Jupyter
+.ipynb_checkpoints/
+
+# pyiron
+*.h5
+*.pkl
+*.hdf5
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Workflow output directories
+gb_segregation/
+opt_cubic_cell/
+solution_energy_bulk/
+solution_energy_solute/
+gb_study/
+pure_grain_boundary_study/
+gb_seg_lammps/
+segregation_study/
+*.log

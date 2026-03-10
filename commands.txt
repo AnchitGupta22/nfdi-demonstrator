@@ -55,3 +55,16 @@ conda env create -f environment.yml
 conda activate ht_segregation
 voila grain_voila.ipynb --template=material --theme=light --port=8002 --Voila.ip=0.0.0.0
 curl -I http://localhost:8002
+
+
+podman run -d -p 8010:8010 --security-opt=label=disable --name nfdi-demo-debug \
+  --device nvidia.com/gpu=all \
+  -v /home/gupta/nfdi-demonstrator:/workspace/nfdi-demonstrator:Z \
+  localhost/nfdi-demonstrator:custom
+
+podman start nfdi-demo-debug
+podman exec -it nfdi-demo-debug /bin/bash
+
+conda activate ht_segregation
+voila grain_voila.ipynb --template=material --theme=light --port=8010 --Voila.ip=0.0.0.0
+curl -I http://localhost:8010

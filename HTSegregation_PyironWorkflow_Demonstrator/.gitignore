@@ -44,7 +44,7 @@ ENV/
 Thumbs.db
 
 # Workflow output directories
-gb_segregation/
+# gb_segregation/
 opt_cubic_cell/
 solution_energy_bulk/
 solution_energy_solute/

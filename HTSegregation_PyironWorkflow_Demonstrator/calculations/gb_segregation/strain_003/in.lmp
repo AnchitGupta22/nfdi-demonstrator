@@ -1,0 +1,20 @@
+units metal
+dimension 3
+boundary p p p
+atom_style atomic
+
+read_data lammps.data
+
+pair_style eam/fs
+pair_coeff * * /workspace/nfdi-demonstrator/HTSegregation_PyironWorkflow_Demonstrator/Al-Fe.eam.fs Fe
+
+compute eng all pe/atom
+dump 1 all custom 10 dump.out id type xsu ysu zsu fx fy fz vx vy vz c_eng
+dump_modify 1 sort id format line "%d %d %20.15g %20.15g %20.15g %20.15g %20.15g %20.15g %20.15g %20.15g %20.15g %20.15g %20.15g %20.15g"
+
+thermo_style custom step temp pe etotal pxx pxy pxz pyy pyz pzz vol
+thermo_modify format float %20.15g
+thermo 10
+
+min_style cg
+minimize 1e-07 1e-07 1000000 10000
